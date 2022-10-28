@@ -233,8 +233,8 @@ async fn test_head_subscription(method: &str) {
 		let api = new_full(client.clone(), test_executor()).into_rpc();
 		let sub = api.subscribe(method, EmptyParams::new()).await.unwrap();
 		let block = client.new_block(Default::default()).unwrap().build().unwrap().block;
-		let block_hash = client.block_hash(1).unwrap().unwrap();
 		client.import(BlockOrigin::Own, block).await.unwrap();
+		let block_hash = client.block_hash(1).unwrap().unwrap();
 		client.finalize_block(&block_hash, None).unwrap();
 		sub
 	};

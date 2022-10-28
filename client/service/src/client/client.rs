@@ -1050,12 +1050,17 @@ where
 		self.backend.blockchain().header(*id)
 	}
 
+	/// Get block header. Returns `UnknownBlock` error if block is not found.
+	fn expect_header(&self, id: BlockId<Block>) -> sp_blockchain::Result<<Block as BlockT>::Header> {
+		self.backend.blockchain().expect_header(id)
+	}
+
 	/// Get block body by id.
 	pub fn body(
 		&self,
-		id: &BlockId<Block>,
+		hash: &Block::Hash,
 	) -> sp_blockchain::Result<Option<Vec<<Block as BlockT>::Extrinsic>>> {
-		self.backend.blockchain().body(*id)
+		self.backend.blockchain().body(hash)
 	}
 
 	/// Gets the uncles of the block with `target_hash` going back `max_generation` ancestors.
@@ -1939,16 +1944,21 @@ where
 {
 	fn block_body(
 		&self,
-		id: &BlockId<Block>,
+		hash: &Block::Hash,
 	) -> sp_blockchain::Result<Option<Vec<<Block as BlockT>::Extrinsic>>> {
-		self.body(id)
+		self.body(hash)
 	}
 
 	fn block(&self, id: &BlockId<Block>) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
-		Ok(match (self.header(id)?, self.body(id)?, self.justifications(id)?) {
-			(Some(header), Some(extrinsics), justifications) =>
-				Some(SignedBlock { block: Block::new(header, extrinsics), justifications }),
-			_ => None,
+		let header = self.expect_header(*id)?;
+		let hash = header.hash();
+
+		Ok({
+			match (self.body(&hash)?, self.justifications(id)?) {
+				(Some(extrinsics), justifications) =>
+					Some(SignedBlock { block: Block::new(header, extrinsics), justifications }),
+				_ => None,
+			}
 		})
 	}
 
