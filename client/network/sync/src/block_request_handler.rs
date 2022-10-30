@@ -332,7 +332,7 @@ where
 			let hash = header.hash();
 			let parent_hash = *header.parent_hash();
 			let justifications = if get_justification {
-				self.client.justifications(&BlockId::Hash(hash))?
+				self.client.justifications(&hash)?
 			} else {
 				None
 			};

@@ -754,9 +754,9 @@ fn beefy_importing_blocks() {
 
 	let full_client = client.as_client();
 	let parent_id = BlockId::Number(0);
-	let block_id = BlockId::Number(1);
 	let builder = full_client.new_block_at(&parent_id, Default::default(), false).unwrap();
 	let block = builder.build().unwrap().block;
+	let hashof1 = block.header.hash();
 
 	// Import without justifications.
 	let mut justif_recv = justif_stream.subscribe();
@@ -771,7 +771,7 @@ fn beefy_importing_blocks() {
 	// Verify no justifications present:
 	{
 		// none in backend,
-		assert!(full_client.justifications(&block_id).unwrap().is_none());
+		assert!(full_client.justifications(&hashof1).unwrap().is_none());
 		// and none sent to BEEFY worker.
 		block_on(poll_fn(move |cx| {
 			assert_eq!(justif_recv.poll_next_unpin(cx), Poll::Pending);
@@ -791,6 +791,7 @@ fn beefy_importing_blocks() {
 
 	let builder = full_client.new_block_at(&parent_id, Default::default(), false).unwrap();
 	let block = builder.build().unwrap().block;
+	let hashof2 = block.header.hash();
 	let mut justif_recv = justif_stream.subscribe();
 	assert_eq!(
 		block_on(block_import.import_block(params(block, justif), HashMap::new())).unwrap(),
@@ -803,7 +804,7 @@ fn beefy_importing_blocks() {
 	// Verify justification successfully imported:
 	{
 		// available in backend,
-		assert!(full_client.justifications(&BlockId::Number(block_num)).unwrap().is_some());
+		assert!(full_client.justifications(&hashof2).unwrap().is_some());
 		// and also sent to BEEFY worker.
 		block_on(poll_fn(move |cx| {
 			match justif_recv.poll_next_unpin(cx) {
@@ -826,6 +827,7 @@ fn beefy_importing_blocks() {
 
 	let builder = full_client.new_block_at(&parent_id, Default::default(), false).unwrap();
 	let block = builder.build().unwrap().block;
+	let hashof3 = block.header.hash();
 	let mut justif_recv = justif_stream.subscribe();
 	assert_eq!(
 		block_on(block_import.import_block(params(block, justif), HashMap::new())).unwrap(),
@@ -839,7 +841,8 @@ fn beefy_importing_blocks() {
 	// Verify bad justifications was not imported:
 	{
 		// none in backend,
-		assert!(full_client.justifications(&block_id).unwrap().is_none());
+		// todo: 3 or 1?
+		assert!(full_client.justifications(&hashof1).unwrap().is_none());
 		// and none sent to BEEFY worker.
 		block_on(poll_fn(move |cx| {
 			assert_eq!(justif_recv.poll_next_unpin(cx), Poll::Pending);
