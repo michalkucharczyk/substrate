@@ -156,7 +156,7 @@ where
 
 		let maybe_encoded_proof = self
 			.client
-			.justifications(&hash)
+			.justifications(hash)
 			.map_err(Error::Client)?
 			.and_then(|justifs| justifs.get(BEEFY_ENGINE_ID).cloned())
 			// No BEEFY justification present.
