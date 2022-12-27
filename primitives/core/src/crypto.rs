@@ -22,7 +22,7 @@
 #[cfg(feature = "std")]
 use crate::hexdisplay::HexDisplay;
 use crate::{ed25519, sr25519};
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 use base58::{FromBase58, ToBase58};
 use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(feature = "std")]
@@ -38,6 +38,11 @@ pub use secrecy::SecretString;
 use sp_runtime_interface::pass_by::PassByInner;
 #[doc(hidden)]
 pub use sp_std::ops::Deref;
+#[cfg(all(not(feature = "std"), feature = "serde", feature = "full_crypto"))]
+use sp_std::{
+	alloc::{format, string::String},
+	vec,
+};
 use sp_std::{hash::Hash, str, vec::Vec};
 /// Trait to zeroize a memory buffer.
 pub use zeroize::Zeroize;
@@ -255,7 +260,7 @@ pub trait Ss58Codec: Sized + AsMut<[u8]> + AsRef<[u8]> + ByteArray {
 	}
 
 	/// Some if the string is a properly encoded SS58Check address.
-	#[cfg(feature = "std")]
+	#[cfg(feature = "serde")]
 	fn from_ss58check(s: &str) -> Result<Self, PublicError> {
 		Self::from_ss58check_with_version(s).and_then(|(r, v)| match v {
 			v if !v.is_custom() => Ok(r),
@@ -265,7 +270,7 @@ pub trait Ss58Codec: Sized + AsMut<[u8]> + AsRef<[u8]> + ByteArray {
 	}
 
 	/// Some if the string is a properly encoded SS58Check address.
-	#[cfg(feature = "std")]
+	#[cfg(feature = "serde")]
 	fn from_ss58check_with_version(s: &str) -> Result<(Self, Ss58AddressFormat), PublicError> {
 		const CHECKSUM_LEN: usize = 2;
 		let body_len = Self::LEN;
@@ -320,7 +325,7 @@ pub trait Ss58Codec: Sized + AsMut<[u8]> + AsRef<[u8]> + ByteArray {
 	}
 
 	/// Return the ss58-check string for this key.
-	#[cfg(feature = "std")]
+	#[cfg(feature = "serde")]
 	fn to_ss58check_with_version(&self, version: Ss58AddressFormat) -> String {
 		// We mask out the upper two bits of the ident - SS58 Prefix currently only supports 14-bits
 		let ident: u16 = u16::from(version) & 0b0011_1111_1111_1111;
@@ -343,7 +348,7 @@ pub trait Ss58Codec: Sized + AsMut<[u8]> + AsRef<[u8]> + ByteArray {
 	}
 
 	/// Return the ss58-check string for this key.
-	#[cfg(feature = "std")]
+	#[cfg(feature = "serde")]
 	fn to_ss58check(&self) -> String {
 		self.to_ss58check_with_version(default_ss58_version())
 	}
@@ -361,16 +366,16 @@ pub trait Derive: Sized {
 	/// Derive a child key from a series of given junctions.
 	///
 	/// Will be `None` for public keys if there are any hard junctions in there.
-	#[cfg(feature = "std")]
+	#[cfg(all(feature = "serde", feature = "full_crypto"))]
 	fn derive<Iter: Iterator<Item = DeriveJunction>>(&self, _path: Iter) -> Option<Self> {
 		None
 	}
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 const PREFIX: &[u8] = b"SS58PRE";
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 fn ss58hash(data: &[u8]) -> Vec<u8> {
 	use blake2::{Blake2b512, Digest};
 
@@ -381,19 +386,19 @@ fn ss58hash(data: &[u8]) -> Vec<u8> {
 }
 
 /// Default prefix number
-#[cfg(feature = "std")]
-static DEFAULT_VERSION: core::sync::atomic::AtomicU16 = std::sync::atomic::AtomicU16::new(
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
+static DEFAULT_VERSION: core::sync::atomic::AtomicU16 = core::sync::atomic::AtomicU16::new(
 	from_known_address_format(Ss58AddressFormatRegistry::SubstrateAccount),
 );
 
 /// Returns default SS58 format used by the current active process.
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 pub fn default_ss58_version() -> Ss58AddressFormat {
-	DEFAULT_VERSION.load(std::sync::atomic::Ordering::Relaxed).into()
+	DEFAULT_VERSION.load(core::sync::atomic::Ordering::Relaxed).into()
 }
 
 /// Returns either the input address format or the default.
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 pub fn unwrap_or_default_ss58_version(network: Option<Ss58AddressFormat>) -> Ss58AddressFormat {
 	network.unwrap_or_else(default_ss58_version)
 }
@@ -407,9 +412,9 @@ pub fn unwrap_or_default_ss58_version(network: Option<Ss58AddressFormat>) -> Ss5
 /// This will enable the node to decode ss58 addresses with this prefix.
 ///
 /// This SS58 version/format is also only used by the node and not by the runtime.
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 pub fn set_default_ss58_version(new_default: Ss58AddressFormat) {
-	DEFAULT_VERSION.store(new_default.into(), std::sync::atomic::Ordering::Relaxed);
+	DEFAULT_VERSION.store(new_default.into(), core::sync::atomic::Ordering::Relaxed);
 }
 
 #[cfg(feature = "std")]
@@ -456,6 +461,11 @@ impl<T: Sized + AsMut<[u8]> + AsRef<[u8]> + Public + Derive> Ss58Codec for T {
 		}
 	}
 }
+
+// Use the default implementations of the trait in serde feature.
+// The std implementation is not available because of std only crate Regex.
+#[cfg(all(not(feature = "std"), feature = "serde", feature = "full_crypto"))]
+impl<T: Sized + AsMut<[u8]> + AsRef<[u8]> + Public + Derive> Ss58Codec for T {}
 
 /// Trait used for types that are really just a fixed-length array.
 pub trait ByteArray: AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8], Error = ()> {
@@ -509,7 +519,7 @@ impl ByteArray for AccountId32 {
 	const LEN: usize = 32;
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 impl Ss58Codec for AccountId32 {}
 
 impl AsRef<[u8]> for AccountId32 {
@@ -593,7 +603,7 @@ impl sp_std::fmt::Debug for AccountId32 {
 	}
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 impl serde::Serialize for AccountId32 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -603,7 +613,7 @@ impl serde::Serialize for AccountId32 {
 	}
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 impl<'de> serde::Deserialize<'de> for AccountId32 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -1054,7 +1064,7 @@ pub trait CryptoType {
 	crate::RuntimeDebug,
 	TypeInfo,
 )]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyTypeId(pub [u8; 4]);
 
 impl From<u32> for KeyTypeId {
@@ -1085,12 +1095,12 @@ impl<'a> TryFrom<&'a str> for KeyTypeId {
 
 /// An identifier for a specific cryptographic algorithm used by a key pair
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CryptoTypeId(pub [u8; 4]);
 
 /// A type alias of CryptoTypeId & a public key
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CryptoTypePublicPair(pub CryptoTypeId, pub Vec<u8>);
 
 #[cfg(feature = "std")]

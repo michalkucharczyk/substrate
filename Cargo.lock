@@ -10385,6 +10385,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core",
+ "sp-std",
 ]
 
 [[package]]
@@ -10493,6 +10494,7 @@ version = "4.0.0-dev"
 dependencies = [
  "serde",
  "serde_json",
+ "sp-std",
 ]
 
 [[package]]
@@ -10568,6 +10570,7 @@ dependencies = [
  "sp-application-crypto",
  "sp-core",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

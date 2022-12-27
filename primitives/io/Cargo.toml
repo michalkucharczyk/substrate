@@ -43,7 +43,7 @@ std = [
 	"bytes/std",
 	"sp-externalities/std",
 	"sp-core/std",
-	"sp-keystore",
+	"sp-keystore/std",
 	"codec/std",
 	"sp-std/std",
 	"sp-trie/std",

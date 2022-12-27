@@ -39,7 +39,7 @@ pub use codec;
 #[doc(hidden)]
 pub use scale_info;
 #[doc(hidden)]
-#[cfg(feature = "std")]
+#[cfg(feature = "serde")]
 pub use serde;
 #[doc(hidden)]
 pub use sp_std::{ops::Deref, vec::Vec};
@@ -290,7 +290,7 @@ macro_rules! app_crypto_public_not_full_crypto {
 #[macro_export]
 macro_rules! app_crypto_public_common {
 	($public:ty, $sig:ty, $key_type:expr, $crypto_type:expr) => {
-		$crate::app_crypto_public_common_if_std!();
+		$crate::app_crypto_public_common_if_serde!();
 
 		impl AsRef<[u8]> for Public {
 			fn as_ref(&self) -> &[u8] {
@@ -307,6 +307,7 @@ macro_rules! app_crypto_public_common {
 		impl $crate::ByteArray for Public {
 			const LEN: usize = <$public>::LEN;
 		}
+
 		impl $crate::Public for Public {
 			fn to_public_crypto_pair(&self) -> $crate::CryptoTypePublicPair {
 				$crate::CryptoTypePublicPair($crypto_type, $crate::ByteArray::to_raw_vec(self))
@@ -373,11 +374,12 @@ macro_rules! app_crypto_public_common {
 	};
 }
 
-/// Implements traits for the public key type if `feature = "std"` is enabled.
-#[cfg(feature = "std")]
+/// Implements traits for the public key type if `feature = "serde"` and `feature = "full_crypto"`
+/// are enabled.
+#[cfg(all(feature = "serde", feature = "full_crypto"))]
 #[doc(hidden)]
 #[macro_export]
-macro_rules! app_crypto_public_common_if_std {
+macro_rules! app_crypto_public_common_if_serde {
 	() => {
 		impl $crate::Derive for Public {
 			fn derive<Iter: Iterator<Item = $crate::DeriveJunction>>(
@@ -388,15 +390,15 @@ macro_rules! app_crypto_public_common_if_std {
 			}
 		}
 
-		impl std::fmt::Display for Public {
-			fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		impl core::fmt::Display for Public {
+			fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
 				use $crate::Ss58Codec;
 				write!(f, "{}", self.0.to_ss58check())
 			}
 		}
 
 		impl $crate::serde::Serialize for Public {
-			fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+			fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
 			where
 				S: $crate::serde::Serializer,
 			{
@@ -406,11 +408,16 @@ macro_rules! app_crypto_public_common_if_std {
 		}
 
 		impl<'de> $crate::serde::Deserialize<'de> for Public {
-			fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+			fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
 			where
 				D: $crate::serde::Deserializer<'de>,
 			{
+				#[cfg(not(feature = "std"))]
+				extern crate alloc;
+				#[cfg(not(feature = "std"))]
+				use alloc::{format, string::String};
 				use $crate::Ss58Codec;
+
 				Public::from_ss58check(&String::deserialize(deserializer)?)
 					.map_err(|e| $crate::serde::de::Error::custom(format!("{:?}", e)))
 			}
@@ -418,10 +425,10 @@ macro_rules! app_crypto_public_common_if_std {
 	};
 }
 
-#[cfg(not(feature = "std"))]
+#[cfg(not(all(feature = "serde", feature = "full_crypto")))]
 #[doc(hidden)]
 #[macro_export]
-macro_rules! app_crypto_public_common_if_std {
+macro_rules! app_crypto_public_common_if_serde {
 	() => {
 		impl $crate::Derive for Public {}
 	};
