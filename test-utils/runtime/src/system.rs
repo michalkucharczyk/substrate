@@ -19,7 +19,7 @@
 //! and depositing logs.
 
 use crate::{
-	AccountId, AuthorityId, Block, BlockNumber, Digest, Extrinsic, Header, Runtime, Transfer,
+	AccountId, AuthorityId, Block, BlockNumber, Digest, ExtrinsicXxx, Header, Runtime, Transfer,
 	H256 as Hash,
 };
 use codec::{Decode, Encode, KeyedVec};
@@ -185,7 +185,7 @@ impl frame_support::traits::ExecuteBlock<Block> for BlockExecutor {
 
 /// Execute a transaction outside of the block execution function.
 /// This doesn't attempt to validate anything regarding the block.
-pub fn validate_transaction(utx: Extrinsic) -> TransactionValidity {
+pub fn validate_transaction(utx: ExtrinsicXxx) -> TransactionValidity {
 	if check_signature(&utx).is_err() {
 		return InvalidTransaction::BadProof.into()
 	}
@@ -214,7 +214,7 @@ pub fn validate_transaction(utx: Extrinsic) -> TransactionValidity {
 
 /// Execute a transaction outside of the block execution function.
 /// This doesn't attempt to validate anything regarding the block.
-pub fn execute_transaction(utx: Extrinsic) -> ApplyExtrinsicResult {
+pub fn execute_transaction(utx: ExtrinsicXxx) -> ApplyExtrinsicResult {
 	let extrinsic_index: u32 =
 		storage::unhashed::get(well_known_keys::EXTRINSIC_INDEX).unwrap_or_default();
 	let result = execute_transaction_backend(&utx, extrinsic_index);
@@ -250,31 +250,31 @@ pub fn finalize_block() -> Header {
 }
 
 #[inline(always)]
-fn check_signature(utx: &Extrinsic) -> Result<(), TransactionValidityError> {
+fn check_signature(utx: &ExtrinsicXxx) -> Result<(), TransactionValidityError> {
 	use sp_runtime::traits::BlindCheckable;
 	utx.clone().check().map_err(|_| InvalidTransaction::BadProof.into()).map(|_| ())
 }
 
-fn execute_transaction_backend(utx: &Extrinsic, extrinsic_index: u32) -> ApplyExtrinsicResult {
+fn execute_transaction_backend(utx: &ExtrinsicXxx, extrinsic_index: u32) -> ApplyExtrinsicResult {
 	check_signature(utx)?;
 	match utx {
-		Extrinsic::Transfer { exhaust_resources_when_not_first: true, .. }
+		ExtrinsicXxx::Transfer { exhaust_resources_when_not_first: true, .. }
 			if extrinsic_index != 0 =>
 			Err(InvalidTransaction::ExhaustsResources.into()),
-		Extrinsic::Transfer { ref transfer, .. } => execute_transfer_backend(transfer),
-		Extrinsic::AuthoritiesChange(ref new_auth) => execute_new_authorities_backend(new_auth),
-		Extrinsic::IncludeData(_) => Ok(Ok(())),
-		Extrinsic::StorageChange(key, value) =>
+		ExtrinsicXxx::Transfer { ref transfer, .. } => execute_transfer_backend(transfer),
+		ExtrinsicXxx::AuthoritiesChange(ref new_auth) => execute_new_authorities_backend(new_auth),
+		ExtrinsicXxx::IncludeData(_) => Ok(Ok(())),
+		ExtrinsicXxx::StorageChange(key, value) =>
 			execute_storage_change(key, value.as_ref().map(|v| &**v)),
-		Extrinsic::OffchainIndexSet(key, value) => {
+		ExtrinsicXxx::OffchainIndexSet(key, value) => {
 			sp_io::offchain_index::set(key, value);
 			Ok(Ok(()))
 		},
-		Extrinsic::OffchainIndexClear(key) => {
+		ExtrinsicXxx::OffchainIndexClear(key) => {
 			sp_io::offchain_index::clear(key);
 			Ok(Ok(()))
 		},
-		Extrinsic::Store(data) => execute_store(data.clone()),
+		ExtrinsicXxx::Store(data) => execute_store(data.clone()),
 	}
 }
 
