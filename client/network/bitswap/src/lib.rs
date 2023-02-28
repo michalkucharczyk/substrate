@@ -296,7 +296,7 @@ mod tests {
 	};
 	use sp_consensus::BlockOrigin;
 	use sp_runtime::codec::Encode;
-	use substrate_test_runtime::Extrinsic;
+	use substrate_test_runtime::ExtrinsicXXXXxx;
 	use substrate_test_runtime_client::{self, prelude::*, TestClientBuilder};
 
 	#[tokio::test]
@@ -469,7 +469,7 @@ mod tests {
 		let mut client = TestClientBuilder::with_tx_storage(u32::MAX).build();
 		let mut block_builder = client.new_block(Default::default()).unwrap();
 
-		let ext = Extrinsic::Store(vec![0x13, 0x37, 0x13, 0x38]);
+		let ext = ExtrinsicXXXXxx::Store(vec![0x13, 0x37, 0x13, 0x38]);
 
 		block_builder.push(ext.clone()).unwrap();
 		let block = block_builder.build().unwrap().block;

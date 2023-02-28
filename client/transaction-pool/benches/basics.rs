@@ -33,7 +33,7 @@ use sp_runtime::{
 		ValidTransaction,
 	},
 };
-use substrate_test_runtime::{AccountId, Block, Extrinsic, Transfer, H256};
+use substrate_test_runtime::{AccountId, Block, ExtrinsicXXXXxx, Transfer, H256};
 
 #[derive(Clone, Debug, Default)]
 struct TestApi {
@@ -57,7 +57,7 @@ impl ChainApi for TestApi {
 	type Block = Block;
 	type Error = sc_transaction_pool_api::error::Error;
 	type ValidationFuture = Ready<sc_transaction_pool_api::error::Result<TransactionValidity>>;
-	type BodyFuture = Ready<sc_transaction_pool_api::error::Result<Option<Vec<Extrinsic>>>>;
+	type BodyFuture = Ready<sc_transaction_pool_api::error::Result<Option<Vec<ExtrinsicXXXXxx>>>>;
 
 	fn validate_transaction(
 		&self,
@@ -131,8 +131,8 @@ impl ChainApi for TestApi {
 	}
 }
 
-fn uxt(transfer: Transfer) -> Extrinsic {
-	Extrinsic::Transfer {
+fn uxt(transfer: Transfer) -> ExtrinsicXXXXxx {
+	ExtrinsicXXXXxx::Transfer {
 		transfer,
 		signature: Decode::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 			.expect("infinite input; no dead input space; qed"),
