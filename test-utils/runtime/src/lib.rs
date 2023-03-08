@@ -23,7 +23,7 @@
 pub mod genesismap;
 pub mod system2;
 
-use codec::{Decode, Encode, Error, Input, MaxEncodedLen};
+use codec::{Decode, Encode, Error, Input};
 use scale_info::TypeInfo;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -37,9 +37,8 @@ use trie_db::{Trie, TrieMut};
 
 use frame_support::{
 	construct_runtime,
-	dispatch::RawOrigin,
 	parameter_types,
-	traits::{CallerTrait, ConstU32, ConstU64, CrateVersion, KeyOwnerProofSystem},
+	traits::{ConstU32, ConstU64, KeyOwnerProofSystem},
 	weights::{RuntimeDbWeight, Weight},
 };
 use frame_system::limits::{BlockLength, BlockWeights};
@@ -50,12 +49,10 @@ use sp_runtime::traits::NumberFor;
 use sp_runtime::{
 	create_runtime_str, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, BlindCheckable, Block as BlockT, Extrinsic as ExtrinsicT, GetNodeBlockType,
-		GetRuntimeBlockType, IdentityLookup, Verify,
+		AccountIdLookup, BlakeTwo256, Block as BlockT, Verify,
 	},
 	transaction_validity::{
-		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError,
-		ValidTransaction,
+		TransactionSource, TransactionValidity, TransactionValidityError,
 	},
 	ApplyExtrinsicResult, Perbill,
 };
@@ -127,6 +124,7 @@ pub struct Transfer {
 	pub nonce: u64,
 }
 
+// todo
 // impl Transfer {
 // 	/// Convert into a signed extrinsic.
 // 	// #[cfg(feature = "std")]
@@ -149,123 +147,24 @@ pub struct Transfer {
 // 	}
 // }
 
-/// Extrinsic for test-runtime.
-// #[derive(Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-// pub enum ExtrinsicXxx {
-// 	AuthoritiesChange(Vec<AuthorityId>),
-// 	Transfer {
-// 		transfer: Transfer,
-// 		signature: AccountSignature,
-// 		exhaust_resources_when_not_first: bool,
-// 	},
-// 	IncludeData(Vec<u8>),
-// 	StorageChange(Vec<u8>, Option<Vec<u8>>),
-// 	OffchainIndexSet(Vec<u8>, Vec<u8>),
-// 	OffchainIndexClear(Vec<u8>),
-// 	Store(Vec<u8>),
-// }
 
-// #[cfg(feature = "std")]
-// impl serde::Serialize for ExtrinsicXxx {
-// 	fn serialize<S>(&self, seq: S) -> Result<S::Ok, S::Error>
-// 	where
-// 		S: ::serde::Serializer,
-// 	{
-// 		self.using_encoded(|bytes| seq.serialize_bytes(bytes))
-// 	}
-// }
+/// The address format for describing accounts.
+pub type Address = sp_core::sr25519::Public;
+pub type Signature = sr25519::Signature;
 
-// rustc can't deduce this trait bound https://github.com/rust-lang/rust/issues/48214
-// #[cfg(feature = "std")]
-// impl<'a> serde::Deserialize<'a> for ExtrinsicXxx {
-// 	fn deserialize<D>(de: D) -> Result<Self, D::Error>
-// 	where
-// 		D: serde::Deserializer<'a>,
-// 	{
-// 		let r = sp_core::bytes::deserialize(de)?;
-// 		Decode::decode(&mut &r[..])
-// 			.map_err(|e| serde::de::Error::custom(format!("Decode error: {}", e)))
-// 	}
-// }
-
-// impl BlindCheckable for ExtrinsicXxx {
-// 	type Checked = Self;
-//
-// 	fn check(self) -> Result<Self, TransactionValidityError> {
-// 		match self {
-// 			ExtrinsicXxx::AuthoritiesChange(new_auth) => Ok(ExtrinsicXxx::AuthoritiesChange(new_auth)),
-// 			ExtrinsicXxx::Transfer { transfer, signature, exhaust_resources_when_not_first } =>
-// 				if sp_runtime::verify_encoded_lazy(&signature, &transfer, &transfer.from) {
-// 					Ok(ExtrinsicXxx::Transfer {
-// 						transfer,
-// 						signature,
-// 						exhaust_resources_when_not_first,
-// 					})
-// 				} else {
-// 					Err(InvalidTransaction::BadProof.into())
-// 				},
-// 			ExtrinsicXxx::IncludeData(v) => Ok(ExtrinsicXxx::IncludeData(v)),
-// 			ExtrinsicXxx::StorageChange(key, value) => Ok(ExtrinsicXxx::StorageChange(key, value)),
-// 			ExtrinsicXxx::OffchainIndexSet(key, value) => Ok(ExtrinsicXxx::OffchainIndexSet(key, value)),
-// 			ExtrinsicXxx::OffchainIndexClear(key) => Ok(ExtrinsicXxx::OffchainIndexClear(key)),
-// 			ExtrinsicXxx::Store(data) => Ok(ExtrinsicXxx::Store(data)),
-// 		}
-// 	}
-// }
-
-// impl ExtrinsicT for ExtrinsicXxx {
-// 	type Call = ExtrinsicXxx;
-// 	type SignaturePayload = ();
-//
-// 	fn is_signed(&self) -> Option<bool> {
-// 		if let ExtrinsicXxx::IncludeData(_) = *self {
-// 			Some(false)
-// 		} else {
-// 			Some(true)
-// 		}
-// 	}
-//
-// 	fn new(call: Self::Call, _signature_payload: Option<Self::SignaturePayload>) -> Option<Self> {
-// 		Some(call)
-// 	}
-// }
-
-// impl sp_runtime::traits::Dispatchable for ExtrinsicXxx {
-// 	type RuntimeOrigin = RuntimeOrigin;
-// 	type Config = ();
-// 	type Info = ();
-// 	type PostInfo = ();
-// 	fn dispatch(
-// 		self,
-// 		_origin: Self::RuntimeOrigin,
-// 	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
-// 		panic!("This implementation should not be used for actual dispatch.");
-// 	}
-// }
-//
-// impl ExtrinsicXxx {
-// 	/// Convert `&self` into `&Transfer`.
-// 	///
-// 	/// Panics if this is no `Transfer` extrinsic.
-// 	pub fn transfer(&self) -> &Transfer {
-// 		self.try_transfer().expect("cannot convert to transfer ref")
-// 	}
-//
-// 	/// Try to convert `&self` into `&Transfer`.
-// 	///
-// 	/// Returns `None` if this is no `Transfer` extrinsic.
-// 	pub fn try_transfer(&self) -> Option<&Transfer> {
-// 		match self {
-// 			ExtrinsicXxx::Transfer { ref transfer, .. } => Some(transfer),
-// 			_ => None,
-// 		}
-// 	}
-// }
+/// The SignedExtension to the basic transaction logic.
+// pub type SignedExtra = Dummy;
+pub type SignedExtra = (
+	frame_system::CheckNonce<Runtime>,
+);
+/// The payload being signed in transactions.
+pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedExtra>;
+/// Unchecked extrinsic type as expected by this runtime.
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// The signature type used by accounts/transactions.
 pub type AccountSignature = sr25519::Signature;
 /// An identifier for an account on this system.
-// pub type AccountId = <AccountSignature as Verify>::Signer;
 pub type AccountId = <<Signature as Verify>::Signer as sp_runtime::traits::IdentifyAccount>::AccountId;
 /// A simple hash type for all our hashing.
 pub type Hash = H256;
@@ -368,18 +267,6 @@ decl_runtime_apis! {
 	}
 }
 
-pub type AccountIndex = u32; // node_primitives::AccountIndex
-pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
-pub type Signature = sp_runtime::MultiSignature; //node_primitives::Signature;
-// pub type SignedExtra = Dummy;
-pub type SignedExtra = (
-	frame_system::CheckNonce<Runtime>,
-);
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
-/// The payload being signed in transactions.
-pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedExtra>;
-/// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic = sp_runtime::generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -389,63 +276,61 @@ pub type Executive = frame_executive::Executive<
 	AllPalletsWithSystem,
 >;
 
-#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-struct Dummy;
-
-impl sp_runtime::traits::Printable for Dummy {
-	fn print(&self) {
-		"Dummy".print()
-	}
-}
-
-
-impl sp_runtime::traits::Dispatchable for Dummy {
-	type RuntimeOrigin = Dummy;
-	type Config = Dummy;
-	type Info = Dummy;
-	type PostInfo = Dummy;
-	fn dispatch(
-		self,
-		_origin: Self::RuntimeOrigin,
-	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
-		panic!("This implementation should not be used for actual dispatch.");
-	}
-}
-
-
-impl sp_runtime::traits::SignedExtension for Dummy {
-	type AccountId = u64;
-	type AdditionalSigned = Dummy;
-	type Call = Dummy;
-	type Pre = Dummy;
-	const IDENTIFIER: &'static str = "UnitSignedExtension";
-	fn additional_signed(&self) -> sp_std::result::Result<Dummy, TransactionValidityError> {
-		Ok(Dummy{})
-	}
-	fn pre_dispatch(
-		self,
-		who: &Self::AccountId,
-		call: &Self::Call,
-		info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
-		len: usize,
-	) -> Result<Self::Pre, TransactionValidityError> {
-		self.validate(who, call, info, len).map(|_| Dummy{})
-	}
-}
-
-pub type NodeBlock = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
+// #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
+// struct Dummy;
+//
+// impl sp_runtime::traits::Printable for Dummy {
+// 	fn print(&self) {
+// 		"Dummy".print()
+// 	}
+// }
+//
+//
+// impl sp_runtime::traits::Dispatchable for Dummy {
+// 	type RuntimeOrigin = Dummy;
+// 	type Config = Dummy;
+// 	type Info = Dummy;
+// 	type PostInfo = Dummy;
+// 	fn dispatch(
+// 		self,
+// 		_origin: Self::RuntimeOrigin,
+// 	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+// 		panic!("This implementation should not be used for actual dispatch.");
+// 	}
+// }
+//
+//
+// impl sp_runtime::traits::SignedExtension for Dummy {
+// 	type AccountId = AccountId;
+// 	type AdditionalSigned = Dummy;
+// 	type Call = Dummy;
+// 	type Pre = Dummy;
+// 	const IDENTIFIER: &'static str = "UnitSignedExtension";
+// 	fn additional_signed(&self) -> sp_std::result::Result<Dummy, TransactionValidityError> {
+// 		Ok(Dummy{})
+// 	}
+// 	fn pre_dispatch(
+// 		self,
+// 		who: &Self::AccountId,
+// 		call: &Self::Call,
+// 		info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
+// 		len: usize,
+// 	) -> Result<Self::Pre, TransactionValidityError> {
+// 		self.validate(who, call, info, len).map(|_| Dummy{})
+// 	}
+// }
 
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
-		NodeBlock = NodeBlock,
-		// NodeBlock = Block,
+		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system,
 		// Utility: pallet_utility,
 		Babe: pallet_babe,
-		Timestamp: pallet_timestamp,
+		// Timestamp: pallet_timestamp,
+		SubstrateTest: system2::pallet,
 		// // Authorship must be before session in order to note author in the correct session and era
 		// // for im-online and staking.
 		// Authorship: pallet_authorship,
@@ -665,27 +550,21 @@ construct_runtime!(
 // 	}
 // }
 
-parameter_types! {
-	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
-		read: 100,
-		write: 1000,
-	};
-	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max(4 * 1024 * 1024);
-	pub RuntimeBlockWeights: BlockWeights =
-		BlockWeights::with_sensible_defaults(Weight::from_ref_time(4 * 1024 * 1024), Perbill::from_percent(75));
-}
-
-// impl From<frame_system::Call<Runtime>> for Extrinsic {
-// 	fn from(_: frame_system::Call<Runtime>) -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
+// parameter_types! {
+// 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
+// 		read: 100,
+// 		write: 1000,
+// 	};
+// 	// pub RuntimeBlockLength: BlockLength =
+// 	// 	BlockLength::max(4 * 1024 * 1024);
+// 	// pub RuntimeBlockWeights: BlockWeights =
+// 	// 	BlockWeights::with_sensible_defaults(Weight::from_ref_time(4 * 1024 * 1024), Perbill::from_percent(75));
 // }
-
+//
 impl frame_system::pallet::Config for Runtime {
 	type BaseCallFilter = frame_support::traits::Everything;
-	type BlockWeights = RuntimeBlockWeights;
-	type BlockLength = RuntimeBlockLength;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type Index = Index;
@@ -693,8 +572,7 @@ impl frame_system::pallet::Config for Runtime {
 	type Hash = H256;
 	type Hashing = Hashing;
 	type AccountId = AccountId;
-	// type Lookup = IdentityLookup<Self::AccountId>;
-	type Lookup = AccountIdLookup<AccountId, ()>;
+	type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<2400>;
@@ -715,9 +593,10 @@ impl system2::Config for Runtime {}
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
-	type OnTimestampSet = ();
+	type OnTimestampSet = Babe;
 	type MinimumPeriod = ConstU64<5>;
-	type WeightInfo = ();
+	// type WeightInfo = ();
+	type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -784,13 +663,61 @@ fn code_using_trie() -> u64 {
 	res
 }
 
-impl_opaque_keys! {
-	pub struct SessionKeys {
-		pub ed25519: ed25519::AppPublic,
-		pub sr25519: sr25519::AppPublic,
-		pub ecdsa: ecdsa::AppPublic,
-	}
+// impl_opaque_keys! {
+// 	pub struct SessionKeys {
+// 		pub ed25519: ed25519::AppPublic,
+// 		pub sr25519: sr25519::AppPublic,
+// 		pub ecdsa: ecdsa::AppPublic,
+// 	}
+// }
+
+// pub type FullClient =
+// 	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
+//
+//
+// pub fn fetch_nonce(client: &FullClient, account: sp_core::sr25519::Pair) -> u64 {
+// 	let best_hash = client.chain_info().best_hash;
+// 	client
+// 		.runtime_api()
+// 		.account_nonce(best_hash, account.public().into())
+// 		.expect("Fetching account nonce works; qed")
+// }
+
+#[cfg(feature = "std")]
+pub fn create_extrinsic(
+	sender: sp_core::sr25519::Pair,
+	function: impl Into<RuntimeCall>,
+	nonce: Option<Index>,
+) -> UncheckedExtrinsic {
+	use sp_core::crypto::Pair;
+	let function = function.into();
+	// let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
+	// let best_hash = client.chain_info().best_hash;
+	//todo
+	// let nonce = nonce.unwrap_or_else(|| fetch_nonce(client, sender.clone()));
+	let nonce = nonce.unwrap_or_else(|| 0u32.into());
+
+	let extra: SignedExtra = (
+		frame_system::CheckNonce::<Runtime>::from(nonce),
+	);
+
+	let raw_payload = SignedPayload::from_raw(
+		function.clone(),
+		extra.clone(),
+		(
+			(),
+		),
+	);
+	let signature = raw_payload.using_encoded(|e| sender.sign(e));
+
+	UncheckedExtrinsic::new_signed(
+		function,
+		sender.public(),
+		signature,
+		extra,
+	)
 }
+
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -819,6 +746,7 @@ impl_runtime_apis! {
 			utx: <Block as BlockT>::Extrinsic,
 			block_hash: <Block as BlockT>::Hash,
 		) -> TransactionValidity {
+			//todo
 			// if let ExtrinsicXxx::IncludeData(data) = utx {
 			// 	return Ok(ValidTransaction {
 			// 		priority: data.len() as u64,
@@ -836,6 +764,7 @@ impl_runtime_apis! {
 
 	impl sp_block_builder::BlockBuilder<Block> for Runtime {
 		fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
+			//todo
 			// system::execute_transaction(extrinsic)
 			Executive::apply_extrinsic(extrinsic)
 		}
@@ -850,6 +779,12 @@ impl_runtime_apis! {
 
 		fn check_inherents(_block: Block, _data: InherentData) -> CheckInherentsResult {
 			CheckInherentsResult::new()
+		}
+	}
+
+	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
+		fn account_nonce(account: AccountId) -> Index {
+			System::account_nonce(account)
 		}
 	}
 
@@ -897,8 +832,9 @@ impl_runtime_apis! {
 			(0..1000).fold(0, |p, i| p + benchmark_add_one(i))
 		}
 
-		fn vec_with_capacity(_size: u32) -> Vec<u8> {
-			unimplemented!("is not expected to be invoked from non-wasm builds");
+		fn vec_with_capacity(size: u32) -> Vec<u8> {
+			// unimplemented!("is not expected to be invoked from non-wasm builds");
+			Vec::with_capacity(size as usize)
 		}
 
 		fn get_block_number() -> u64 {
@@ -944,18 +880,18 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
-		fn slot_duration() -> sp_consensus_aura::SlotDuration {
-			sp_consensus_aura::SlotDuration::from_millis(1000)
-		}
-
-		fn authorities() -> Vec<AuraId> {
-			system2::authorities().into_iter().map(|a| {
-				let authority: sr25519::Public = a.into();
-				AuraId::from(authority)
-			}).collect()
-		}
-	}
+	// impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+	// 	fn slot_duration() -> sp_consensus_aura::SlotDuration {
+	// 		sp_consensus_aura::SlotDuration::from_millis(1000)
+	// 	}
+    //
+	// 	fn authorities() -> Vec<AuraId> {
+	// 		system2::authorities().into_iter().map(|a| {
+	// 			let authority: sr25519::Public = a.into();
+	// 			AuraId::from(authority)
+	// 		}).collect()
+	// 	}
+	// }
 
 	impl sp_consensus_babe::BabeApi<Block> for Runtime {
 		fn configuration() -> sp_consensus_babe::BabeConfiguration {
@@ -1000,90 +936,51 @@ impl_runtime_apis! {
 	}
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-		fn offchain_worker(header: &<Block as BlockT>::Header) {
+		fn offchain_worker(_header: &<Block as BlockT>::Header) {
+			//todo
 			// let ex = ExtrinsicXxx::IncludeData(header.number.encode());
 			// sp_io::offchain::submit_transaction(ex.encode()).unwrap();
 		}
 	}
 
-	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(_: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(None)
-		}
+	// impl sp_session::SessionKeys<Block> for Runtime {
+	// 	fn generate_session_keys(_: Option<Vec<u8>>) -> Vec<u8> {
+	// 		SessionKeys::generate(None)
+	// 	}
+    //
+	// 	fn decode_session_keys(
+	// 		encoded: Vec<u8>,
+	// 	) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
+	// 		SessionKeys::decode_into_raw_public_keys(&encoded)
+	// 	}
+	// }
 
-		fn decode_session_keys(
-			encoded: Vec<u8>,
-		) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
-			SessionKeys::decode_into_raw_public_keys(&encoded)
-		}
-	}
-
-	impl sp_finality_grandpa::GrandpaApi<Block> for Runtime {
-		fn grandpa_authorities() -> sp_finality_grandpa::AuthorityList {
-			Vec::new()
-		}
-
-		fn current_set_id() -> sp_finality_grandpa::SetId {
-			0
-		}
-
-		fn submit_report_equivocation_unsigned_extrinsic(
-			_equivocation_proof: sp_finality_grandpa::EquivocationProof<
-			<Block as BlockT>::Hash,
-			NumberFor<Block>,
-			>,
-			_key_owner_proof: sp_finality_grandpa::OpaqueKeyOwnershipProof,
-		) -> Option<()> {
-			None
-		}
-
-		fn generate_key_ownership_proof(
-			_set_id: sp_finality_grandpa::SetId,
-			_authority_id: sp_finality_grandpa::AuthorityId,
-		) -> Option<sp_finality_grandpa::OpaqueKeyOwnershipProof> {
-			None
-		}
-	}
-
-	impl beefy_primitives::BeefyApi<Block> for Runtime {
-		fn beefy_genesis() -> Option<BlockNumber> {
-			None
-		}
-
-		fn validator_set() -> Option<beefy_primitives::ValidatorSet<beefy_primitives::crypto::AuthorityId>> {
-			None
-		}
-
-		fn submit_report_equivocation_unsigned_extrinsic(
-			_equivocation_proof: beefy_primitives::EquivocationProof<
-			NumberFor<Block>,
-			beefy_primitives::crypto::AuthorityId,
-			beefy_primitives::crypto::Signature
-			>,
-			_key_owner_proof: beefy_primitives::OpaqueKeyOwnershipProof,
-		) -> Option<()> { None }
-
-		fn generate_key_ownership_proof(
-			_set_id: beefy_primitives::ValidatorSetId,
-			_authority_id: beefy_primitives::crypto::AuthorityId,
-		) -> Option<beefy_primitives::OpaqueKeyOwnershipProof> { None }
-	}
-
-	impl pallet_beefy_mmr::BeefyMmrApi<Block, beefy_primitives::MmrRootHash> for Runtime {
-		fn authority_set_proof() -> beefy_primitives::mmr::BeefyAuthoritySet<beefy_primitives::MmrRootHash> {
-			Default::default()
-		}
-
-		fn next_authority_set_proof() -> beefy_primitives::mmr::BeefyNextAuthoritySet<beefy_primitives::MmrRootHash> {
-			Default::default()
-		}
-	}
-
-	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-		fn account_nonce(_account: AccountId) -> Index {
-			0
-		}
-	}
+	// impl sp_finality_grandpa::GrandpaApi<Block> for Runtime {
+	// 	fn grandpa_authorities() -> sp_finality_grandpa::AuthorityList {
+	// 		Vec::new()
+	// 	}
+    //
+	// 	fn current_set_id() -> sp_finality_grandpa::SetId {
+	// 		0
+	// 	}
+    //
+	// 	fn submit_report_equivocation_unsigned_extrinsic(
+	// 		_equivocation_proof: sp_finality_grandpa::EquivocationProof<
+	// 		<Block as BlockT>::Hash,
+	// 		NumberFor<Block>,
+	// 		>,
+	// 		_key_owner_proof: sp_finality_grandpa::OpaqueKeyOwnershipProof,
+	// 	) -> Option<()> {
+	// 		None
+	// 	}
+    //
+	// 	fn generate_key_ownership_proof(
+	// 		_set_id: sp_finality_grandpa::SetId,
+	// 		_authority_id: sp_finality_grandpa::AuthorityId,
+	// 	) -> Option<sp_finality_grandpa::OpaqueKeyOwnershipProof> {
+	// 		None
+	// 	}
+	// }
 }
 
 fn test_ed25519_crypto() -> (ed25519::AppSignature, ed25519::AppPublic) {
@@ -1196,6 +1093,7 @@ mod tests {
 
 	#[test]
 	fn heap_pages_is_respected() {
+		sp_tracing::try_init_simple();
 		// This tests that the on-chain HEAP_PAGES parameter is respected.
 
 		// Create a client devoting only 8 pages of wasm memory. This gives us ~512k of heap memory.
@@ -1204,6 +1102,7 @@ mod tests {
 			.set_heap_pages(8)
 			.build();
 		let best_hash = client.chain_info().best_hash;
+		client.runtime_api().do_trace_log(best_hash);
 
 		// Try to allocate 1024k of memory on heap. This is going to fail since it is twice larger
 		// than the heap.
@@ -1214,6 +1113,7 @@ mod tests {
 			1048576,
 		);
 		assert!(ret.is_err());
+		log::trace!("XXXXXXXXXXXXX");
 
 		// Create a block that sets the `:heap_pages` to 32 pages of memory which corresponds to
 		// ~2048k of heap memory.
@@ -1225,7 +1125,9 @@ mod tests {
 			(hash, block)
 		};
 
+		log::trace!("YYYYYYYYYYYYY {:?} {:?}", new_at_hash, block);
 		futures::executor::block_on(client.import(BlockOrigin::Own, block)).unwrap();
+		log::trace!("YYYYYYYYYYYYY");
 
 		// Allocation of 1024k while having ~2048k should succeed.
 		let ret = client.runtime_api().vec_with_capacity(new_at_hash, 1048576);
