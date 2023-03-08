@@ -46,6 +46,8 @@ trie-db = { version = "0.27.0", default-features = false }
 sc-service = { version = "0.10.0-dev", default-features = false, optional = true, features = ["test-helpers"], path = "../../client/service" }
 sp-state-machine = { version = "0.13.0", default-features = false, path = "../../primitives/state-machine" }
 sp-externalities = { version = "0.13.0", default-features = false, path = "../../primitives/externalities" }
+sp-tracing = { version = "6.0.0", path = "../../primitives/tracing", default-features = false }
+sp-debug-derive = { path = "../../primitives/debug-derive" }
 
 # 3rd party
 cfg-if = "1.0"
@@ -103,6 +105,10 @@ std = [
 	"sp-transaction-pool/std",
 	"trie-db/std",
 	"substrate-wasm-builder",
+	"sp-tracing/with-tracing"
 ]
 # Special feature to disable logging
 disable-logging = [ "sp-api/disable-logging" ]
+force-debug = [
+	"sp-debug-derive/force-debug"
+]
