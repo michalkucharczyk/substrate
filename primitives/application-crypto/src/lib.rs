@@ -376,7 +376,7 @@ macro_rules! app_crypto_public_common {
 	};
 }
 
-/// Implements traits for the public key type if `feature = "serde"` are enabled.
+/// Implements traits for the public key type if `feature = "serde"` is enabled.
 #[cfg(feature = "serde")]
 #[doc(hidden)]
 #[macro_export]
