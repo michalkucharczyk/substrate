@@ -13,6 +13,7 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.2.2", features = [
 	"derive",
 ] }

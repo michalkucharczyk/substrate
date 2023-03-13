@@ -49,10 +49,10 @@ use sp_runtime::traits::NumberFor;
 use sp_runtime::{
 	create_runtime_str, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, Verify,
+		AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Verify,
 	},
 	transaction_validity::{
-		TransactionSource, TransactionValidity, TransactionValidityError,
+		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction
 	},
 	ApplyExtrinsicResult, Perbill,
 };
@@ -125,27 +125,59 @@ pub struct Transfer {
 }
 
 // todo
-// impl Transfer {
-// 	/// Convert into a signed extrinsic.
-// 	// #[cfg(feature = "std")]
-// 	// pub fn into_signed_tx(self) -> ExtrinsicXxx {
-// 	// 	let signature = sp_keyring::AccountKeyring::from_public(&self.from)
-// 	// 		.expect("Creates keyring from public key.")
-// 	// 		.sign(&self.encode());
-// 	// 	ExtrinsicXxx::Transfer { transfer: self, signature, exhaust_resources_when_not_first: false }
-// 	// }
-//
-// 	/// Convert into a signed extrinsic, which will only end up included in the block
-// 	/// if it's the first transaction. Otherwise it will cause `ResourceExhaustion` error
-// 	/// which should be considered as block being full.
-// 	#[cfg(feature = "std")]
-// 	pub fn into_resources_exhausting_tx(self) -> ExtrinsicXxx {
-// 		let signature = sp_keyring::AccountKeyring::from_public(&self.from)
-// 			.expect("Creates keyring from public key.")
-// 			.sign(&self.encode());
-// 		ExtrinsicXxx::Transfer { transfer: self, signature, exhaust_resources_when_not_first: true }
-// 	}
-// }
+impl Transfer {
+	/// Convert into a signed extrinsic.
+	#[cfg(feature = "std")]
+	pub fn into_unchecked_extrinsic(self) -> UncheckedExtrinsic {
+		let signature = sp_keyring::AccountKeyring::from_public(&self.from)
+			.expect("Creates keyring from public key.")
+			.sign(&self.encode());
+		create_extrinsic(system2::pallet::Call::transfer { transfer: self, signature, exhaust_resources_when_not_first: false } )
+	}
+
+	pub fn try_from_unchecked_extrinsic(uxt: &UncheckedExtrinsic) -> Option<Self> {
+		// if let system2::pallet::Call::transfer{t} = uxt.function {
+		// 	Some(t)
+		// }
+		if let RuntimeCall::SubstrateTest(ref x) = uxt.function {
+			if let system2::pallet::Call::transfer{transfer,..} = x {
+			return Some(Transfer{from:transfer.from, to:transfer.to, amount: transfer.amount, nonce:transfer.nonce})
+			}
+			return None
+		}
+		None
+	}
+
+	/// Convert into a signed extrinsic, which will only end up included in the block
+	/// if it's the first transaction. Otherwise it will cause `ResourceExhaustion` error
+	/// which should be considered as block being full.
+	#[cfg(feature = "std")]
+	pub fn into_resources_exhausting_unchecked_extrinsic(self) -> UncheckedExtrinsic {
+		//todo this fails...
+		let signature = sp_keyring::AccountKeyring::from_public(&self.from)
+			.expect("Creates keyring from public key.")
+			.sign(&self.encode());
+		create_extrinsic(system2::pallet::Call::transfer { transfer: self, signature, exhaust_resources_when_not_first: true } )
+	}
+
+	//todo: naming + extra trait for UncheckedExtrinsic ?
+	pub fn check_transfer(uxt: &UncheckedExtrinsic) -> Result<Self, TransactionValidityError> {
+		if let RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{ref transfer,ref signature, ref exhaust_resources_when_not_first}) = uxt.function  {
+			if sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
+				Ok(Transfer {
+					from:transfer.from,
+					to:transfer.to,
+					amount:transfer.amount,
+					nonce:transfer.nonce,
+				})
+			} else {
+				Err(InvalidTransaction::BadProof.into())
+			}
+		} else {
+			Err(InvalidTransaction::Call.into())
+		}
+	}
+}
 
 
 /// The address format for describing accounts.
@@ -153,10 +185,10 @@ pub type Address = sp_core::sr25519::Public;
 pub type Signature = sr25519::Signature;
 
 /// The SignedExtension to the basic transaction logic.
-// pub type SignedExtra = Dummy;
-pub type SignedExtra = (
-	frame_system::CheckNonce<Runtime>,
-);
+pub type SignedExtra = Dummy;
+// pub type SignedExtra = (
+// 	frame_system::CheckNonce<Runtime>,
+// );
 /// The payload being signed in transactions.
 pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Unchecked extrinsic type as expected by this runtime.
@@ -276,49 +308,86 @@ pub type Executive = frame_executive::Executive<
 	AllPalletsWithSystem,
 >;
 
-// #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-// struct Dummy;
-//
-// impl sp_runtime::traits::Printable for Dummy {
-// 	fn print(&self) {
-// 		"Dummy".print()
-// 	}
-// }
-//
-//
-// impl sp_runtime::traits::Dispatchable for Dummy {
-// 	type RuntimeOrigin = Dummy;
-// 	type Config = Dummy;
-// 	type Info = Dummy;
-// 	type PostInfo = Dummy;
-// 	fn dispatch(
-// 		self,
-// 		_origin: Self::RuntimeOrigin,
-// 	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
-// 		panic!("This implementation should not be used for actual dispatch.");
-// 	}
-// }
-//
-//
-// impl sp_runtime::traits::SignedExtension for Dummy {
-// 	type AccountId = AccountId;
-// 	type AdditionalSigned = Dummy;
-// 	type Call = Dummy;
-// 	type Pre = Dummy;
-// 	const IDENTIFIER: &'static str = "UnitSignedExtension";
-// 	fn additional_signed(&self) -> sp_std::result::Result<Dummy, TransactionValidityError> {
-// 		Ok(Dummy{})
-// 	}
-// 	fn pre_dispatch(
-// 		self,
-// 		who: &Self::AccountId,
-// 		call: &Self::Call,
-// 		info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
-// 		len: usize,
-// 	) -> Result<Self::Pre, TransactionValidityError> {
-// 		self.validate(who, call, info, len).map(|_| Dummy{})
-// 	}
-// }
+#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct Dummy;
+
+impl sp_runtime::traits::Printable for Dummy {
+	fn print(&self) {
+		"Dummy".print()
+	}
+}
+
+
+impl sp_runtime::traits::Dispatchable for Dummy {
+	type RuntimeOrigin = Dummy;
+	type Config = Dummy;
+	type Info = Dummy;
+	type PostInfo = Dummy;
+	fn dispatch(
+		self,
+		_origin: Self::RuntimeOrigin,
+	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+		panic!("This implementation should not be used for actual dispatch.");
+	}
+}
+
+
+impl sp_runtime::traits::SignedExtension for Dummy {
+	type AccountId = AccountId;
+	type Call = RuntimeCall;
+	type AdditionalSigned = ();
+	type Pre = Dummy;
+	const IDENTIFIER: &'static str = "UnitSignedExtension";
+	fn additional_signed(&self) -> sp_std::result::Result<Self::AdditionalSigned, TransactionValidityError> {
+		Ok(())
+	}
+
+	fn validate(
+		&self,
+		who: &Self::AccountId,
+		call: &Self::Call,
+		_info: &DispatchInfoOf<Self::Call>,
+		_len: usize,
+	) -> TransactionValidity {
+		log::trace!("xxx -> validate");
+		if let RuntimeCall::SubstrateTest(ref substrate_test_call) = call {
+			return system2::validate_runtime_call(substrate_test_call);
+		}
+		Ok(ValidTransaction {
+			provides: vec![vec![0u8]],
+			..Default::default()
+		})
+	}
+	fn pre_dispatch(
+		self,
+		who: &Self::AccountId,
+		call: &Self::Call,
+		info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
+		len: usize,
+	) -> Result<Self::Pre, TransactionValidityError> {
+		self.validate(who, call, info, len).map(|_| Dummy{})
+	}
+
+	// fn validate_unsigned(
+	// 	_call: &Self::Call,
+	// 	_info: &DispatchInfoOf<Self::Call>,
+	// 	_len: usize,
+	// ) -> TransactionValidity {
+	// 	log::trace!("xxx -> validate_unsigned");
+	// 	//todo: this is actaully not needed here (syste2::pallet::validate_transaction)
+	// 	Ok(ValidTransaction {
+	// 		priority: 1000,
+	// 		requires: vec![],
+	// 		provides: vec![vec![0u8]],
+	// 		longevity: 1,
+	// 		propagate: false,
+	// 	})
+	// 	// Ok(ValidTransaction {
+	// 	// 	provides: vec![vec![0u8]],
+	// 	// 	..Default::default()
+	// 	// })
+	// }
+}
 
 construct_runtime!(
 	pub enum Runtime where
@@ -663,13 +732,13 @@ fn code_using_trie() -> u64 {
 	res
 }
 
-// impl_opaque_keys! {
-// 	pub struct SessionKeys {
-// 		pub ed25519: ed25519::AppPublic,
-// 		pub sr25519: sr25519::AppPublic,
-// 		pub ecdsa: ecdsa::AppPublic,
-// 	}
-// }
+impl_opaque_keys! {
+	pub struct SessionKeys {
+		pub ed25519: ed25519::AppPublic,
+		pub sr25519: sr25519::AppPublic,
+		pub ecdsa: ecdsa::AppPublic,
+	}
+}
 
 // pub type FullClient =
 // 	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
@@ -685,28 +754,42 @@ fn code_using_trie() -> u64 {
 
 #[cfg(feature = "std")]
 pub fn create_extrinsic(
-	sender: sp_core::sr25519::Pair,
+	// sender: sp_core::sr25519::Pair,
 	function: impl Into<RuntimeCall>,
-	nonce: Option<Index>,
+	// nonce: Option<Index>,
 ) -> UncheckedExtrinsic {
-	use sp_core::crypto::Pair;
-	let function = function.into();
+	// use sp_core::crypto::Pair;
+	// let function = function.into();
 	// let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
 	// let best_hash = client.chain_info().best_hash;
 	//todo
 	// let nonce = nonce.unwrap_or_else(|| fetch_nonce(client, sender.clone()));
-	let nonce = nonce.unwrap_or_else(|| 0u32.into());
+	// let nonce = nonce.unwrap_or_else(|| 0u32.into());
+    //
+	// let extra: SignedExtra = (
+	// 	frame_system::CheckNonce::<Runtime>::from(nonce),
+	// );
+    //
+	// let raw_payload = SignedPayload::from_raw(
+	// 	function.clone(),
+	// 	extra.clone(),
+	// 	(
+	// 		(),
+	// 	),
+	// );
+	// let signature = raw_payload.using_encoded(|e| sender.sign(e));
 
-	let extra: SignedExtra = (
-		frame_system::CheckNonce::<Runtime>::from(nonce),
-	);
+	// UncheckedExtrinsic::new_unsigned(
+	// 	function.into(),
+	// );
 
+	let function = function.into();
+	let sender = sp_keyring::AccountKeyring::Alice;
+	let extra = SignedExtra{};
 	let raw_payload = SignedPayload::from_raw(
 		function.clone(),
-		extra.clone(),
-		(
-			(),
-		),
+		extra,
+		()
 	);
 	let signature = raw_payload.using_encoded(|e| sender.sign(e));
 
@@ -746,16 +829,17 @@ impl_runtime_apis! {
 			utx: <Block as BlockT>::Extrinsic,
 			block_hash: <Block as BlockT>::Hash,
 		) -> TransactionValidity {
-			//todo
-			// if let ExtrinsicXxx::IncludeData(data) = utx {
-			// 	return Ok(ValidTransaction {
-			// 		priority: data.len() as u64,
-			// 		requires: vec![],
-			// 		provides: vec![data],
-			// 		longevity: 1,
-			// 		propagate: false,
-			// 	});
-			// }
+			//todo:
+			log::trace!("xxx -> validate_transaction {:?}", utx);
+			if let RuntimeCall::SubstrateTest(system2::pallet::Call::include_data{data}) = utx.function {
+				return Ok(ValidTransaction {
+					priority: data.len() as u64,
+					requires: vec![],
+					provides: vec![data],
+					longevity: 1,
+					propagate: false,
+				});
+			}
             //
 			// system::validate_transaction(utx)
 			Executive::validate_transaction(source, utx, block_hash)
@@ -880,18 +964,18 @@ impl_runtime_apis! {
 		}
 	}
 
-	// impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
-	// 	fn slot_duration() -> sp_consensus_aura::SlotDuration {
-	// 		sp_consensus_aura::SlotDuration::from_millis(1000)
-	// 	}
-    //
-	// 	fn authorities() -> Vec<AuraId> {
-	// 		system2::authorities().into_iter().map(|a| {
-	// 			let authority: sr25519::Public = a.into();
-	// 			AuraId::from(authority)
-	// 		}).collect()
-	// 	}
-	// }
+	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+		fn slot_duration() -> sp_consensus_aura::SlotDuration {
+			sp_consensus_aura::SlotDuration::from_millis(1000)
+		}
+
+		fn authorities() -> Vec<AuraId> {
+			system2::authorities().into_iter().map(|a| {
+				let authority: sr25519::Public = a.into();
+				AuraId::from(authority)
+			}).collect()
+		}
+	}
 
 	impl sp_consensus_babe::BabeApi<Block> for Runtime {
 		fn configuration() -> sp_consensus_babe::BabeConfiguration {
@@ -936,51 +1020,53 @@ impl_runtime_apis! {
 	}
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-		fn offchain_worker(_header: &<Block as BlockT>::Header) {
-			//todo
-			// let ex = ExtrinsicXxx::IncludeData(header.number.encode());
-			// sp_io::offchain::submit_transaction(ex.encode()).unwrap();
+		fn offchain_worker(header: &<Block as BlockT>::Header) {
+			// let ext = create_extrinsic();
+			let ext = UncheckedExtrinsic::new_unsigned(
+				system2::pallet::Call::include_data{data:header.number.encode()}.into(),
+			);
+			sp_io::offchain::submit_transaction(ext.encode()).unwrap();
 		}
 	}
 
-	// impl sp_session::SessionKeys<Block> for Runtime {
-	// 	fn generate_session_keys(_: Option<Vec<u8>>) -> Vec<u8> {
-	// 		SessionKeys::generate(None)
-	// 	}
-    //
-	// 	fn decode_session_keys(
-	// 		encoded: Vec<u8>,
-	// 	) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
-	// 		SessionKeys::decode_into_raw_public_keys(&encoded)
-	// 	}
-	// }
+	impl sp_session::SessionKeys<Block> for Runtime {
+		fn generate_session_keys(_: Option<Vec<u8>>) -> Vec<u8> {
+			SessionKeys::generate(None)
+		}
 
-	// impl sp_finality_grandpa::GrandpaApi<Block> for Runtime {
-	// 	fn grandpa_authorities() -> sp_finality_grandpa::AuthorityList {
-	// 		Vec::new()
-	// 	}
-    //
-	// 	fn current_set_id() -> sp_finality_grandpa::SetId {
-	// 		0
-	// 	}
-    //
-	// 	fn submit_report_equivocation_unsigned_extrinsic(
-	// 		_equivocation_proof: sp_finality_grandpa::EquivocationProof<
-	// 		<Block as BlockT>::Hash,
-	// 		NumberFor<Block>,
-	// 		>,
-	// 		_key_owner_proof: sp_finality_grandpa::OpaqueKeyOwnershipProof,
-	// 	) -> Option<()> {
-	// 		None
-	// 	}
-    //
-	// 	fn generate_key_ownership_proof(
-	// 		_set_id: sp_finality_grandpa::SetId,
-	// 		_authority_id: sp_finality_grandpa::AuthorityId,
-	// 	) -> Option<sp_finality_grandpa::OpaqueKeyOwnershipProof> {
-	// 		None
-	// 	}
-	// }
+		fn decode_session_keys(
+			encoded: Vec<u8>,
+		) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
+			SessionKeys::decode_into_raw_public_keys(&encoded)
+		}
+	}
+
+	impl sp_finality_grandpa::GrandpaApi<Block> for Runtime {
+		fn grandpa_authorities() -> sp_finality_grandpa::AuthorityList {
+			Vec::new()
+		}
+
+		fn current_set_id() -> sp_finality_grandpa::SetId {
+			0
+		}
+
+		fn submit_report_equivocation_unsigned_extrinsic(
+			_equivocation_proof: sp_finality_grandpa::EquivocationProof<
+			<Block as BlockT>::Hash,
+			NumberFor<Block>,
+			>,
+			_key_owner_proof: sp_finality_grandpa::OpaqueKeyOwnershipProof,
+		) -> Option<()> {
+			None
+		}
+
+		fn generate_key_ownership_proof(
+			_set_id: sp_finality_grandpa::SetId,
+			_authority_id: sp_finality_grandpa::AuthorityId,
+		) -> Option<sp_finality_grandpa::OpaqueKeyOwnershipProof> {
+			None
+		}
+	}
 }
 
 fn test_ed25519_crypto() -> (ed25519::AppSignature, ed25519::AppPublic) {

@@ -559,23 +559,23 @@ mod tests {
 	use sp_runtime::{generic::BlockId, traits::NumberFor};
 	use substrate_test_runtime_client::{
 		prelude::*,
-		runtime::{Extrinsic, Transfer},
+		runtime::{create_extrinsic, UncheckedExtrinsic, system2, Transfer},
 		TestClientBuilder, TestClientBuilderExt,
 	};
 
 	const SOURCE: TransactionSource = TransactionSource::External;
 
-	fn extrinsic(nonce: u64) -> Extrinsic {
+	fn extrinsic(nonce: u64) -> UncheckedExtrinsic {
 		Transfer {
 			amount: Default::default(),
 			nonce,
 			from: AccountKeyring::Alice.into(),
 			to: AccountKeyring::Bob.into(),
 		}
-		.into_signed_tx()
+		.into_unchecked_extrinsic()
 	}
 
-	fn exhausts_resources_extrinsic_from(who: usize) -> Extrinsic {
+	fn exhausts_resources_extrinsic_from(who: usize) -> UncheckedExtrinsic {
 		let pair = AccountKeyring::numeric(who);
 		let transfer = Transfer {
 			// increase the amount to bump priority
@@ -583,9 +583,9 @@ mod tests {
 			nonce: 0,
 			from: pair.public(),
 			to: AccountKeyring::Bob.into(),
-		};
+		};//.into_resources_exhausting_unchecked_extrinsic()
 		let signature = pair.sign(&transfer.encode()).into();
-		Extrinsic::Transfer { transfer, signature, exhaust_resources_when_not_first: true }
+		create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: true } )
 	}
 
 	fn chain_event<B: BlockT>(header: B::Header) -> ChainEvent<B>
@@ -597,6 +597,7 @@ mod tests {
 
 	#[test]
 	fn should_cease_building_block_when_deadline_is_reached() {
+		sp_tracing::try_init_simple();
 		// given
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -610,6 +611,10 @@ mod tests {
 
 		block_on(txpool.submit_at(&BlockId::number(0), SOURCE, vec![extrinsic(0), extrinsic(1)]))
 			.unwrap();
+
+		for i in txpool.ready() {
+			log::trace!("xxx before -> txpool.ready(): {:?}", i);
+		}
 
 		block_on(
 			txpool.maintain(chain_event(
@@ -648,6 +653,10 @@ mod tests {
 		// then
 		// block should have some extrinsics although we have some more in the pool.
 		assert_eq!(block.extrinsics().len(), 1);
+		log::trace!("xxx after -> block.extrinsics: {:?}", block.extrinsics());
+		for i in txpool.ready() {
+			log::trace!("xxx -> txpool.ready(): {:?}", i);
+		}
 		assert_eq!(txpool.ready().count(), 2);
 	}
 
@@ -689,6 +698,8 @@ mod tests {
 
 	#[test]
 	fn proposed_storage_changes_should_match_execute_block_storage_changes() {
+		sp_tracing::try_init_simple();
+
 		let (client, backend) = TestClientBuilder::new().build_with_backend();
 		let client = Arc::new(client);
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -764,14 +775,14 @@ mod tests {
 					nonce: 2,
 					from: AccountKeyring::Alice.into(),
 					to: AccountKeyring::Bob.into(),
-				}.into_resources_exhausting_tx(),
+				}.into_resources_exhausting_unchecked_extrinsic(),
 				extrinsic(3),
 				Transfer {
 					amount: Default::default(),
 					nonce: 4,
 					from: AccountKeyring::Alice.into(),
 					to: AccountKeyring::Bob.into(),
-				}.into_resources_exhausting_tx(),
+				}.into_resources_exhausting_unchecked_extrinsic(),
 				extrinsic(5),
 				extrinsic(6),
 			],
@@ -833,6 +844,8 @@ mod tests {
 
 	#[test]
 	fn should_cease_building_block_when_block_limit_is_reached() {
+		sp_tracing::try_init_simple();
+
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
 		let txpool = BasicPool::new_full(
@@ -854,9 +867,9 @@ mod tests {
 				amount: 100,
 				nonce: 0,
 			}
-			.into_signed_tx(),
+			.into_unchecked_extrinsic(),
 		)
-		.chain((0..extrinsics_num - 1).map(|v| Extrinsic::IncludeData(vec![v as u8; 10])))
+		.chain((0..extrinsics_num - 1).map(|v| create_extrinsic( system2::pallet::Call::include_data{data:vec![v as u8; 10]})))
 		.collect::<Vec<_>>();
 
 		let block_limit = genesis_header.encoded_size() +
@@ -865,7 +878,12 @@ mod tests {
 				.take(extrinsics_num - 1)
 				.map(Encode::encoded_size)
 				.sum::<usize>() +
-			Vec::<Extrinsic>::new().encoded_size();
+			Vec::<UncheckedExtrinsic>::new().encoded_size();
+
+		log::trace!("xxx -> extrinsics:{extrinsics:?}");
+		log::trace!("xxx -> extrinsics:{:?}", extrinsics.len());
+		log::trace!("xxx -> block_limit:{block_limit:?}");
+		log::info!("xxx: ==========================");
 
 		block_on(txpool.submit_at(&BlockId::number(0), SOURCE, extrinsics)).unwrap();
 
@@ -889,6 +907,7 @@ mod tests {
 
 		// Based on the block limit, one transaction shouldn't be included.
 		assert_eq!(block.extrinsics().len(), extrinsics_num - 1);
+		log::info!("xxx: ==========================");
 
 		let proposer = block_on(proposer_factory.init(&genesis_header)).unwrap();
 
@@ -899,6 +918,7 @@ mod tests {
 
 		// Without a block limit we should include all of them
 		assert_eq!(block.extrinsics().len(), extrinsics_num);
+		log::info!("xxx: ==========================");
 
 		let mut proposer_factory = ProposerFactory::with_proof_recording(
 			spawner.clone(),
@@ -915,7 +935,7 @@ mod tests {
 			Default::default(),
 			Default::default(),
 			deadline,
-			Some(block_limit),
+			Some(block_limit + 363), //todo: explan constant: Executive::initialize_block(header)
 		))
 		.map(|r| r.block)
 		.unwrap();
@@ -923,6 +943,8 @@ mod tests {
 		// The block limit didn't changed, but we now include the proof in the estimation of the
 		// block size and thus, only the `Transfer` will fit into the block. It reads more data
 		// than we have reserved in the block limit.
+		log::trace!("xxx -> block size: {:?}", block.encoded_size());
+		log::trace!("xxx -> block extrs: {:?}", block.extrinsics());
 		assert_eq!(block.extrinsics().len(), 1);
 	}
 
@@ -991,6 +1013,8 @@ mod tests {
 
 	#[test]
 	fn should_only_skip_up_to_some_limit_after_soft_deadline() {
+		sp_tracing::try_init_simple();
+
 		// given
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -1023,6 +1047,9 @@ mod tests {
 					.expect("there should be header"),
 			)),
 		);
+		for i in txpool.ready() {
+			log::trace!("xxx before -> txpool.ready(): {:?}", i);
+		}
 		assert_eq!(txpool.ready().count(), MAX_SKIPPED_TRANSACTIONS * 2 + 2);
 
 		let mut proposer_factory =

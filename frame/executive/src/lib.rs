@@ -412,7 +412,7 @@ where
 		// Reset events before apply runtime upgrade hook.
 		// This is required to preserve events from runtime upgrade hook.
 		// This means the format of all the event related storages must always be compatible.
-		<frame_system::Pallet<System>>::reset_events();
+		// <frame_system::Pallet<System>>::reset_events();
 
 		let mut weight = Weight::zero();
 		if Self::runtime_upgraded() {
@@ -550,9 +550,17 @@ where
 		sp_io::init_tracing();
 		let encoded = uxt.encode();
 		let encoded_len = encoded.len();
+		frame_support::log::info!(
+			target: "frame::executive",
+			"xxx: apply_extrinsic",
+		);
 		sp_tracing::enter_span!(sp_tracing::info_span!("apply_extrinsic",
 				ext=?sp_core::hexdisplay::HexDisplay::from(&encoded)));
 		// Verify that the signature is good.
+		frame_support::log::info!(
+			target: "frame::executive",
+			"yyy: apply_extrinsic: uxt:{uxt:?}",
+		);
 		let xt = uxt.check(&Default::default())?;
 
 		// We don't need to make sure to `note_extrinsic` only after we know it's going to be
@@ -564,7 +572,15 @@ where
 
 		// Decode parameters and dispatch
 		let dispatch_info = xt.get_dispatch_info();
+		frame_support::log::info!(
+			target: "frame::executive",
+			"yyy: apply_extrinsic: dispatch_info:{dispatch_info:?}",
+		);
 		let r = Applyable::apply::<UnsignedValidator>(xt, &dispatch_info, encoded_len)?;
+		frame_support::log::info!(
+			target: "frame::executive",
+			"yyy: apply_extrinsic: r:{r:?}",
+		);
 
 		// Mandatory(inherents) are not allowed to fail.
 		//

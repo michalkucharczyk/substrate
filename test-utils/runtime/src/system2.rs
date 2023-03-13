@@ -35,7 +35,7 @@ pub mod pallet {
 
 	// The current block number being processed. Set by `execute_block`.
 	#[pallet::storage]
-	pub type Number<T> = StorageValue<_, BlockNumber, OptionQuery>;
+	pub type Number<T: Config> = StorageValue<_, T::BlockNumber, OptionQuery>;
 
 	#[pallet::storage]
 	pub type ParentHash<T> = StorageValue<_, Hash, ValueQuery>;
@@ -65,7 +65,16 @@ pub mod pallet {
 	// #[pallet::hooks]
 	// impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 	// 	fn on_initialize(n: T::BlockNumber) -> Weight {
-	// 		pallet_timestamp::Pallet::<T>::set_timestamp(n*1000);
+	// 		// populate environment.
+	// 		Number::<T>::put(n);
+	// 		storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
+    //         //
+	// 		// try to read something that depends on current header digest
+	// 		// so that it'll be included in execution proof
+	// 		// if let Some(generic::DigestItem::Other(v)) = n.digest().logs().iter().next() {
+	// 		// 	let _: Option<u32> = storage::unhashed::get(v);
+	// 		// }
+    //
 	// 		T::WeightInfo::on_finalize()
 	// 	}
     //
@@ -101,17 +110,38 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(100)]
-		pub fn transfer(origin: OriginFor<T>, _transfer: Transfer, _signature: AccountSignature, _exhaust_resources_when_not_first: bool) -> DispatchResult {
+		pub fn transfer(origin: OriginFor<T>, transfer: Transfer, signature: AccountSignature, exhaust_resources_when_not_first: bool) -> DispatchResult {
+			log::trace!("xxxxxxx -> transfer");
 			frame_system::ensure_signed(origin)?;
-			//todo
+
+			//todo do we need to re-verify transfer (signature / nonce / balance)?
+
+			let nonce_key = transfer.from.to_keyed_vec(NONCE_OF);
+			let expected_nonce: u64 = storage::hashed::get_or(&blake2_256, &nonce_key, 0);
+			// increment nonce in storage
+			storage::hashed::put(&blake2_256, &nonce_key, &(expected_nonce + 1));
+
+			// check sender balance
+			let from_balance_key = transfer.from.to_keyed_vec(BALANCE_OF);
+			let from_balance: u64 = storage::hashed::get_or(&blake2_256, &from_balance_key, 0);
+
+			// enact transfer
+			// if transfer.amount > from_balance {
+			// 	return Err(InvalidTransaction::Payment.into())
+			// }
+			let to_balance_key = transfer.to.to_keyed_vec(BALANCE_OF);
+			let to_balance: u64 = storage::hashed::get_or(&blake2_256, &to_balance_key, 0);
+			storage::hashed::put(&blake2_256, &from_balance_key, &(from_balance - transfer.amount));
+			storage::hashed::put(&blake2_256, &to_balance_key, &(to_balance + transfer.amount));
 			Ok(())
 		}
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(100)]
 		pub fn include_data(origin: OriginFor<T>, _data: Vec<u8>) -> DispatchResult {
+			log::trace!("xxxxxxx -> include_data");
 			frame_system::ensure_signed(origin)?;
-			//todo
+			//todo (nothing?)
 			Ok(())
 		}
 
@@ -155,30 +185,19 @@ pub mod pallet {
 	}
 
 
-	// #[pallet::validate_unsigned]
-	// impl<T: Config> ValidateUnsigned for Pallet<T> {
-	// 	type Call = Call<T>;
-    //
-	// 	// Inherent call is accepted for being dispatched
-	// 	fn pre_dispatch(call: &Self::Call) -> Result<(), TransactionValidityError> {
-	// 		match call {
-	// 			Call::allowed_unsigned { .. } => Ok(()),
-	// 			Call::inherent_call { .. } => Ok(()),
-	// 			_ => Err(UnknownTransaction::NoUnsignedValidator.into()),
-	// 		}
-	// 	}
-    //
-	// 	// Inherent call is not validated as unsigned
-	// 	fn validate_unsigned(
-	// 		_source: TransactionSource,
-	// 		call: &Self::Call,
-	// 	) -> TransactionValidity {
-	// 		match call {
-	// 			Call::allowed_unsigned { .. } => Ok(Default::default()),
-	// 			_ => UnknownTransaction::NoUnsignedValidator.into(),
-	// 		}
-	// 	}
-	// }
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		// Inherent call is not validated as unsigned
+		fn validate_unsigned(
+			_source: TransactionSource,
+			call: &Self::Call,
+		) -> TransactionValidity {
+			log::trace!("xxxxxxx -> validate_unsigned");
+			validate_runtime_call(call)
+		}
+	}
 }
 
 pub fn balance_of_key(who: AccountId) -> Vec<u8> {
@@ -204,4 +223,60 @@ pub fn get_block_number() -> Option<BlockNumber> {
 
 pub fn take_block_number() -> Option<BlockNumber> {
 	<Number<Runtime>>::take()
+}
+
+
+use codec::Encode;
+use sp_runtime::{
+	transaction_validity::{
+		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction }
+};
+pub fn validate_runtime_call<T: pallet::Config>(
+	call: &pallet::Call<T>,
+) -> TransactionValidity {
+	log::trace!("xxxxxxx -> validate_runtime_call");
+	//todo: this shall return provides tags!
+	match call {
+		Call::transfer { transfer, signature, exhaust_resources_when_not_first } => {
+			let extrinsic_index: u32 = storage::unhashed::get(well_known_keys::EXTRINSIC_INDEX).unwrap_or_default();
+
+			if *exhaust_resources_when_not_first && extrinsic_index != 0 {
+				return InvalidTransaction::ExhaustsResources.into()
+			}
+
+			// check signature
+			if !sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
+				return InvalidTransaction::BadProof.into()
+			}
+
+			// check nonce
+			let nonce_key = transfer.from.to_keyed_vec(NONCE_OF);
+			let expected_nonce: u64 = storage::hashed::get_or(&blake2_256, &nonce_key, 0);
+			if transfer.nonce < expected_nonce {
+				return InvalidTransaction::Stale.into()
+			}
+
+			if transfer.nonce > expected_nonce + 64 {
+				return InvalidTransaction::Future.into()
+			}
+
+			let encode = |from: &AccountId, nonce: u64| (from, nonce).encode();
+			let requires = if transfer.nonce != expected_nonce && transfer.nonce > 0 {
+				vec![encode(&transfer.from, transfer.nonce - 1)]
+			} else {
+				vec![]
+			};
+
+			let provides = vec![encode(&transfer.from, transfer.nonce)];
+
+			Ok(ValidTransaction {
+				priority: transfer.amount,
+				requires,
+				provides,
+				longevity: 64,
+				propagate: true,
+			})
+		},
+		_ => Ok(Default::default())
+	}
 }

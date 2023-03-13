@@ -31,7 +31,7 @@ use sp_runtime::{
 	},
 };
 use std::{collections::HashSet, sync::Arc};
-use substrate_test_runtime::{Block, ExtrinsicXXXXxx, Hashing, Transfer, H256};
+use substrate_test_runtime::{Block, create_extrinsic, UncheckedExtrinsic, Hashing, RuntimeCall, system2, Transfer, H256};
 
 pub(crate) const INVALID_NONCE: u64 = 254;
 
@@ -42,12 +42,12 @@ pub(crate) struct TestApi {
 	pub invalidate: Arc<Mutex<HashSet<H256>>>,
 	pub clear_requirements: Arc<Mutex<HashSet<H256>>>,
 	pub add_requirements: Arc<Mutex<HashSet<H256>>>,
-	pub validation_requests: Arc<Mutex<Vec<ExtrinsicXXXXxx>>>,
+	pub validation_requests: Arc<Mutex<Vec<UncheckedExtrinsic>>>,
 }
 
 impl TestApi {
 	/// Query validation requests received.
-	pub fn validation_requests(&self) -> Vec<ExtrinsicXXXXxx> {
+	pub fn validation_requests(&self) -> Vec<UncheckedExtrinsic> {
 		self.validation_requests.lock().clone()
 	}
 }
@@ -56,7 +56,7 @@ impl ChainApi for TestApi {
 	type Block = Block;
 	type Error = error::Error;
 	type ValidationFuture = futures::future::Ready<error::Result<TransactionValidity>>;
-	type BodyFuture = futures::future::Ready<error::Result<Option<Vec<ExtrinsicXXXXxx>>>>;
+	type BodyFuture = futures::future::Ready<error::Result<Option<Vec<UncheckedExtrinsic>>>>;
 
 	/// Verify extrinsic at given block.
 	fn validate_transaction(
@@ -69,8 +69,8 @@ impl ChainApi for TestApi {
 		let hash = self.hash_and_length(&uxt).0;
 		let block_number = self.block_id_to_number(at).unwrap().unwrap();
 
-		let res = match uxt {
-			ExtrinsicXXXXxx::Transfer { transfer, .. } => {
+		let res = match uxt.function {
+		    RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{transfer, ..}) => {
 				let nonce = transfer.nonce;
 
 				// This is used to control the test flow.
@@ -115,14 +115,14 @@ impl ChainApi for TestApi {
 					Ok(transaction)
 				}
 			},
-			ExtrinsicXXXXxx::IncludeData(_) => Ok(ValidTransaction {
+			RuntimeCall::SubstrateTest(system2::pallet::Call::include_data{..}) => Ok(ValidTransaction {
 				priority: 9001,
 				requires: vec![],
 				provides: vec![vec![42]],
 				longevity: 9001,
 				propagate: false,
 			}),
-			ExtrinsicXXXXxx::Store(_) => Ok(ValidTransaction {
+			RuntimeCall::SubstrateTest(system2::pallet::Call::store{..}) => Ok(ValidTransaction {
 				priority: 9001,
 				requires: vec![],
 				provides: vec![vec![43]],
@@ -184,9 +184,9 @@ impl ChainApi for TestApi {
 	}
 }
 
-pub(crate) fn uxt(transfer: Transfer) -> ExtrinsicXXXXxx {
+pub(crate) fn uxt(transfer: Transfer) -> UncheckedExtrinsic {
 	let signature = TryFrom::try_from(&[0; 64][..]).unwrap();
-	ExtrinsicXXXXxx::Transfer { transfer, signature, exhaust_resources_when_not_first: false }
+	create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: false } )
 }
 
 pub(crate) fn pool() -> Pool<TestApi> {

@@ -8007,6 +8007,7 @@ dependencies = [
  "sp-core",
  "sp-inherents",
  "sp-runtime",
+ "sp-tracing",
  "substrate-prometheus-endpoint",
  "substrate-test-runtime-client",
 ]
@@ -8015,6 +8016,7 @@ dependencies = [
 name = "sc-block-builder"
 version = "0.10.0-dev"
 dependencies = [
+ "log",
  "parity-scale-codec",
  "sc-client-api",
  "sp-api",
@@ -8647,6 +8649,7 @@ dependencies = [
  "sp-consensus",
  "sp-core",
  "sp-runtime",
+ "sp-tracing",
  "substrate-test-runtime",
  "substrate-test-runtime-client",
  "thiserror",
@@ -10803,6 +10806,7 @@ dependencies = [
  "sp-consensus-aura",
  "sp-consensus-babe",
  "sp-core",
+ "sp-debug-derive",
  "sp-externalities",
  "sp-finality-grandpa",
  "sp-inherents",
@@ -10814,6 +10818,7 @@ dependencies = [
  "sp-session",
  "sp-state-machine",
  "sp-std",
+ "sp-tracing",
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
@@ -10826,6 +10831,7 @@ dependencies = [
 name = "substrate-test-runtime-client"
 version = "2.0.0"
 dependencies = [
+ "frame-system",
  "futures",
  "parity-scale-codec",
  "sc-block-builder",
@@ -10835,6 +10841,7 @@ dependencies = [
  "sp-blockchain",
  "sp-consensus",
  "sp-core",
+ "sp-keyring",
  "sp-runtime",
  "substrate-test-client",
  "substrate-test-runtime",

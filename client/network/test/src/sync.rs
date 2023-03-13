@@ -1180,7 +1180,8 @@ async fn syncs_indexed_blocks() {
 		64,
 		BlockOrigin::Own,
 		|mut builder| {
-			let ex = Extrinsic::Store(n.to_le_bytes().to_vec());
+			let ex = create_extrinsic(system2::pallet::Call::store{data:n.to_le_bytes().to_vec()});
+			// let ex = Extrinsic::Store(n.to_le_bytes().to_vec());
 			n += 1;
 			builder.push(ex).unwrap();
 			builder.build().unwrap().block
@@ -1305,7 +1306,7 @@ async fn syncs_huge_blocks() {
 	net.peer(0).generate_blocks(32, BlockOrigin::Own, |mut builder| {
 		// Add 32 extrinsics 32k each = 1MiB total
 		for _ in 0..32 {
-			let ex = Extrinsic::IncludeData([42u8; 32 * 1024].to_vec());
+			let ex = create_extrinsic(system2::pallet::Call::include_data{data:vec![42u8; 32 * 1024]});
 			builder.push(ex).unwrap();
 		}
 		builder.build().unwrap().block

@@ -33,7 +33,7 @@ use sp_runtime::{
 		ValidTransaction,
 	},
 };
-use substrate_test_runtime::{AccountId, Block, ExtrinsicXXXXxx, Transfer, H256};
+use substrate_test_runtime::{AccountId, Block, create_extrinsic, H256, UncheckedExtrinsic, system2, Transfer };
 
 #[derive(Clone, Debug, Default)]
 struct TestApi {
@@ -57,7 +57,7 @@ impl ChainApi for TestApi {
 	type Block = Block;
 	type Error = sc_transaction_pool_api::error::Error;
 	type ValidationFuture = Ready<sc_transaction_pool_api::error::Result<TransactionValidity>>;
-	type BodyFuture = Ready<sc_transaction_pool_api::error::Result<Option<Vec<ExtrinsicXXXXxx>>>>;
+	type BodyFuture = Ready<sc_transaction_pool_api::error::Result<Option<Vec<UncheckedExtrinsic>>>>;
 
 	fn validate_transaction(
 		&self,
@@ -65,8 +65,9 @@ impl ChainApi for TestApi {
 		_source: TransactionSource,
 		uxt: <Self::Block as BlockT>::Extrinsic,
 	) -> Self::ValidationFuture {
-		let nonce = uxt.transfer().nonce;
-		let from = uxt.transfer().from;
+		let transfer = Transfer::try_from_unchecked_extrinsic(&uxt).expect("uxt is expected to be Transfer");
+		let nonce = transfer.nonce;
+		let from = transfer.from;
 
 		match self.block_id_to_number(at) {
 			Ok(Some(num)) if num > 5 => return ready(Ok(Err(InvalidTransaction::Stale.into()))),
@@ -131,13 +132,10 @@ impl ChainApi for TestApi {
 	}
 }
 
-fn uxt(transfer: Transfer) -> ExtrinsicXXXXxx {
-	ExtrinsicXXXXxx::Transfer {
-		transfer,
-		signature: Decode::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
-			.expect("infinite input; no dead input space; qed"),
-		exhaust_resources_when_not_first: false,
-	}
+fn uxt(transfer: Transfer) -> UncheckedExtrinsic {
+	let signature = Decode::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
+		.expect("infinite input; no dead input space; qed");
+	create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: false } )
 }
 
 fn bench_configured(pool: Pool<TestApi>, number: u64) {

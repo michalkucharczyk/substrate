@@ -254,7 +254,7 @@ mod tests {
 	use sp_runtime::generic::BlockId;
 	use std::{collections::HashSet, sync::Arc};
 	use substrate_test_runtime_client::{
-		runtime::Block, ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient,
+		runtime::{create_extrinsic, Block, system2}, ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient,
 		TestClientBuilderExt,
 	};
 
@@ -403,11 +403,9 @@ mod tests {
 		let key = &b"hello"[..];
 		let value = &b"world"[..];
 		let mut block_builder = client.new_block(Default::default()).unwrap();
+		let ext = create_extrinsic(system2::pallet::Call::offchain_index_set{key:key.to_vec(),value:value.to_vec()});
 		block_builder
-			.push(substrate_test_runtime_client::runtime::Extrinsic::OffchainIndexSet(
-				key.to_vec(),
-				value.to_vec(),
-			))
+			.push(ext)
 			.unwrap();
 
 		let block = block_builder.build().unwrap().block;
@@ -416,10 +414,9 @@ mod tests {
 		assert_eq!(value, &offchain_db.get(sp_offchain::STORAGE_PREFIX, &key).unwrap());
 
 		let mut block_builder = client.new_block(Default::default()).unwrap();
+		let ext = create_extrinsic(system2::pallet::Call::offchain_index_clear{key:key.to_vec()});
 		block_builder
-			.push(substrate_test_runtime_client::runtime::Extrinsic::OffchainIndexClear(
-				key.to_vec(),
-			))
+			.push(ext)
 			.unwrap();
 
 		let block = block_builder.build().unwrap().block;

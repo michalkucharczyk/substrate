@@ -296,7 +296,7 @@ mod tests {
 	};
 	use sp_consensus::BlockOrigin;
 	use sp_runtime::codec::Encode;
-	use substrate_test_runtime::ExtrinsicXXXXxx;
+	use substrate_test_runtime::{create_extrinsic, system2};
 	use substrate_test_runtime_client::{self, prelude::*, TestClientBuilder};
 
 	#[tokio::test]
@@ -466,15 +466,19 @@ mod tests {
 
 	#[tokio::test]
 	async fn transaction_found() {
+		sp_tracing::try_init_simple();
 		let mut client = TestClientBuilder::with_tx_storage(u32::MAX).build();
 		let mut block_builder = client.new_block(Default::default()).unwrap();
 
-		let ext = ExtrinsicXXXXxx::Store(vec![0x13, 0x37, 0x13, 0x38]);
+		// encoded extrsinic: [161, .. , 2, 6, 16, 19, 55, 19, 56]
+		let ext = create_extrinsic(system2::pallet::Call::store{data:vec![0x13, 0x37, 0x13, 0x38]});
+		let pattern_index = ext.encode().len() - 4;
 
 		block_builder.push(ext.clone()).unwrap();
 		let block = block_builder.build().unwrap().block;
 
-		client.import(BlockOrigin::File, block).await.unwrap();
+		client.import(BlockOrigin::File, block.clone()).await.unwrap();
+		log::trace!("xxx -> block indexed body: {:#?}",  client.block_indexed_body(block.hash()));
 
 		let (bitswap, config) = BitswapRequestHandler::new(Arc::new(client));
 
@@ -493,7 +497,7 @@ mod tests {
 								0x70,
 								cid::multihash::Multihash::wrap(
 									u64::from(cid::multihash::Code::Blake2b256),
-									&sp_core::hashing::blake2_256(&ext.encode()[2..]),
+									&sp_core::hashing::blake2_256(&ext.encode()[pattern_index..]),
 								)
 								.unwrap(),
 							)
@@ -516,6 +520,7 @@ mod tests {
 
 			let response =
 				schema::bitswap::Message::decode(&result.expect("fetch to succeed")[..]).unwrap();
+			log::trace!("xxx-> payload: {:#?}", response.payload);
 			assert_eq!(response.payload[0].data, vec![0x13, 0x37, 0x13, 0x38]);
 		} else {
 			panic!("invalid event received");

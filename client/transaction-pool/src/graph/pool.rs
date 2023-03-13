@@ -17,6 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
+use codec::{Encode};
 
 use crate::LOG_TARGET;
 use futures::{channel::mpsc::Receiver, Future};
@@ -348,6 +349,9 @@ impl<B: ChainApi> Pool<B> {
 			self.verify(at, pruned_transactions, CheckBannedBeforeVerify::Yes).await?;
 
 		log::trace!(target: LOG_TARGET, "Pruning at {:?}. Resubmitting transactions.", at);
+		log::trace!(target: LOG_TARGET, "xxx -> known_imported_hashes: {:?}", known_imported_hashes.clone().into_iter().collect::<Vec<_>>());
+		log::trace!(target: LOG_TARGET, "xxx -> pruned_hashes: {pruned_hashes:?}");
+		log::trace!(target: LOG_TARGET, "xxx -> reverified_transactions: {reverified_transactions:?}");
 		// And finally - submit reverified transactions back to the pool
 
 		self.validated_pool.resubmit_pruned(
@@ -463,7 +467,7 @@ mod tests {
 	use sc_transaction_pool_api::TransactionStatus;
 	use sp_runtime::transaction_validity::TransactionSource;
 	use std::{collections::HashMap, time::Instant};
-	use substrate_test_runtime::{AccountId, ExtrinsicXXXXxx, Transfer, H256};
+	use substrate_test_runtime::{AccountId, create_extrinsic, UncheckedExtrinsic, system2, Transfer, H256};
 
 	const SOURCE: TransactionSource = TransactionSource::External;
 
@@ -521,7 +525,7 @@ mod tests {
 		);
 
 		// after validation `IncludeData` will be set to non-propagable
-		let uxt = ExtrinsicXXXXxx::IncludeData(vec![42]);
+		let uxt = create_extrinsic(system2::pallet::Call::include_data{data:vec![42]});
 
 		// when
 		let res = block_on(pool.submit_one(&BlockId::Number(0), SOURCE, uxt));
@@ -663,21 +667,26 @@ mod tests {
 	#[test]
 	fn should_limit_futures() {
 		// given
-		let limit = Limit { count: 100, total_bytes: 200 };
+		sp_tracing::try_init_simple();
+		let limit = Limit { count: 100, total_bytes: 246 };
 
 		let options = Options { ready: limit.clone(), future: limit.clone(), ..Default::default() };
 
 		let pool = Pool::new(options, true.into(), TestApi::default().into());
 
-		let hash1 = block_on(pool.submit_one(
-			&BlockId::Number(0),
-			SOURCE,
-			uxt(Transfer {
+		let xt = uxt(Transfer {
 				from: AccountId::from_h256(H256::from_low_u64_be(1)),
 				to: AccountId::from_h256(H256::from_low_u64_be(2)),
 				amount: 5,
 				nonce: 1,
-			}),
+			});
+
+		log::trace!("xxx -> xt {:?} {:?} {:?}", xt, xt.encode(), xt.encode().len());
+
+		let hash1 = block_on(pool.submit_one(
+			&BlockId::Number(0),
+			SOURCE,
+			xt,
 		))
 		.unwrap();
 		assert_eq!(pool.validated_pool().status().future, 1);
@@ -952,7 +961,7 @@ mod tests {
 
 				let pool = Pool::new(options, true.into(), TestApi::default().into());
 
-				let xt = ExtrinsicXXXXxx::IncludeData(Vec::new());
+				let xt = create_extrinsic(system2::pallet::Call::include_data{data:Vec::new()});
 				block_on(pool.submit_one(&BlockId::Number(0), SOURCE, xt)).unwrap();
 				assert_eq!(pool.validated_pool().status().ready, 1);
 
@@ -977,7 +986,7 @@ mod tests {
 
 				let pool = Pool::new(options, true.into(), TestApi::default().into());
 
-				let xt = ExtrinsicXXXXxx::IncludeData(Vec::new());
+				let xt = create_extrinsic(system2::pallet::Call::include_data{data:Vec::new()});
 				block_on(pool.submit_and_watch(&BlockId::Number(0), SOURCE, xt)).unwrap();
 				assert_eq!(pool.validated_pool().status().ready, 1);
 
@@ -992,7 +1001,7 @@ mod tests {
 				assert_eq!(pool.validated_pool().status().ready, 2);
 
 				// when
-				let xt = ExtrinsicXXXXxx::Store(Vec::new());
+				let xt = create_extrinsic(system2::pallet::Call::store{data:Vec::new()});
 				block_on(pool.submit_one(&BlockId::Number(1), SOURCE, xt)).unwrap();
 				assert_eq!(pool.validated_pool().status().ready, 2);
 
