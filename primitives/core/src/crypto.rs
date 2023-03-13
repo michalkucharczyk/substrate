@@ -209,6 +209,7 @@ impl<T: AsRef<str>> From<T> for DeriveJunction {
 #[cfg_attr(not(feature = "std"), derive(Debug))]
 #[derive(Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
 pub enum PublicError {
 	#[cfg_attr(feature = "std", error("Base 58 requirement is violated"))]
 	BadBase58,
@@ -361,7 +362,7 @@ pub trait Derive: Sized {
 	/// Derive a child key from a series of given junctions.
 	///
 	/// Will be `None` for public keys if there are any hard junctions in there.
-	#[cfg(all(feature = "serde"))]
+	#[cfg(feature = "serde")]
 	fn derive<Iter: Iterator<Item = DeriveJunction>>(&self, _path: Iter) -> Option<Self> {
 		None
 	}
