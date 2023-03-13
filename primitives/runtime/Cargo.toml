@@ -44,7 +44,6 @@ runtime-benchmarks = []
 try-runtime = []
 default = ["std"]
 std = [
-	"full_crypto",
 	"codec/std",
 	"either/use_std",
 	"hash256-std-hasher/std",
@@ -68,12 +67,4 @@ serde = [
 	"sp-arithmetic/serde",
 	"sp-core/serde",
 	"sp-weights/serde",
-]
-
-# This feature enables all crypto primitives for `no_std` builds like microcontrollers
-# or Intel SGX.
-# For the regular wasm runtime builds this should not be used.
-full_crypto = [
-	"sp-application-crypto/full_crypto",
-	"sp-core/full_crypto",
 ]

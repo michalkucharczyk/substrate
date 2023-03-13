@@ -22,7 +22,7 @@
 #[cfg(feature = "std")]
 use crate::hexdisplay::HexDisplay;
 use crate::{ed25519, sr25519};
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 use base58::{FromBase58, ToBase58};
 use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(feature = "std")]
@@ -38,17 +38,15 @@ pub use secrecy::SecretString;
 use sp_runtime_interface::pass_by::PassByInner;
 #[doc(hidden)]
 pub use sp_std::ops::Deref;
-#[cfg(all(not(feature = "std"), feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 use sp_std::{
 	alloc::{format, string::String},
 	vec,
 };
 use sp_std::{hash::Hash, str, vec::Vec};
+pub use ss58_registry::{from_known_address_format, Ss58AddressFormat, Ss58AddressFormatRegistry};
 /// Trait to zeroize a memory buffer.
 pub use zeroize::Zeroize;
-
-#[cfg(feature = "full_crypto")]
-pub use ss58_registry::{from_known_address_format, Ss58AddressFormat, Ss58AddressFormatRegistry};
 
 /// The root phrase for our publicly known keys.
 pub const DEV_PHRASE: &str =
@@ -63,7 +61,6 @@ pub enum Infallible {}
 
 /// The length of the junction identifier. Note that this is also referred to as the
 /// `CHAIN_CODE_LENGTH` in the context of Schnorrkel.
-#[cfg(feature = "full_crypto")]
 pub const JUNCTION_ID_LEN: usize = 32;
 
 /// Similar to `From`, except that the onus is on the part of the caller to ensure
@@ -117,7 +114,7 @@ pub enum SecretStringError {
 /// a new secret key from an existing secret key and, in the case of `SoftRaw` and `SoftIndex`
 /// a new public key from an existing public key.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Encode, Decode)]
-#[cfg(feature = "full_crypto")]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
 pub enum DeriveJunction {
 	/// Soft (vanilla) derivation. Public keys have a correspondent derivation.
 	Soft([u8; JUNCTION_ID_LEN]),
@@ -125,7 +122,7 @@ pub enum DeriveJunction {
 	Hard([u8; JUNCTION_ID_LEN]),
 }
 
-#[cfg(feature = "full_crypto")]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
 impl DeriveJunction {
 	/// Consume self to return a soft derive junction with the same chain code.
 	pub fn soften(self) -> Self {
@@ -184,7 +181,7 @@ impl DeriveJunction {
 	}
 }
 
-#[cfg(feature = "full_crypto")]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
 impl<T: AsRef<str>> From<T> for DeriveJunction {
 	fn from(j: T) -> DeriveJunction {
 		let j = j.as_ref();
@@ -212,7 +209,6 @@ impl<T: AsRef<str>> From<T> for DeriveJunction {
 #[cfg_attr(not(feature = "std"), derive(Debug))]
 #[derive(Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
-#[cfg(feature = "full_crypto")]
 pub enum PublicError {
 	#[cfg_attr(feature = "std", error("Base 58 requirement is violated"))]
 	BadBase58,
@@ -251,7 +247,6 @@ impl sp_std::fmt::Debug for PublicError {
 ///
 /// See <https://docs.substrate.io/v3/advanced/ss58/>
 /// for information on the codec.
-#[cfg(feature = "full_crypto")]
 pub trait Ss58Codec: Sized + AsMut<[u8]> + AsRef<[u8]> + ByteArray {
 	/// A format filterer, can be used to ensure that `from_ss58check` family only decode for
 	/// allowed identifiers. By default just refuses the two reserved identifiers.
@@ -366,16 +361,16 @@ pub trait Derive: Sized {
 	/// Derive a child key from a series of given junctions.
 	///
 	/// Will be `None` for public keys if there are any hard junctions in there.
-	#[cfg(all(feature = "serde", feature = "full_crypto"))]
+	#[cfg(all(feature = "serde"))]
 	fn derive<Iter: Iterator<Item = DeriveJunction>>(&self, _path: Iter) -> Option<Self> {
 		None
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 const PREFIX: &[u8] = b"SS58PRE";
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 fn ss58hash(data: &[u8]) -> Vec<u8> {
 	use blake2::{Blake2b512, Digest};
 
@@ -386,19 +381,19 @@ fn ss58hash(data: &[u8]) -> Vec<u8> {
 }
 
 /// Default prefix number
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 static DEFAULT_VERSION: core::sync::atomic::AtomicU16 = core::sync::atomic::AtomicU16::new(
 	from_known_address_format(Ss58AddressFormatRegistry::SubstrateAccount),
 );
 
 /// Returns default SS58 format used by the current active process.
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 pub fn default_ss58_version() -> Ss58AddressFormat {
 	DEFAULT_VERSION.load(core::sync::atomic::Ordering::Relaxed).into()
 }
 
 /// Returns either the input address format or the default.
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 pub fn unwrap_or_default_ss58_version(network: Option<Ss58AddressFormat>) -> Ss58AddressFormat {
 	network.unwrap_or_else(default_ss58_version)
 }
@@ -412,7 +407,7 @@ pub fn unwrap_or_default_ss58_version(network: Option<Ss58AddressFormat>) -> Ss5
 /// This will enable the node to decode ss58 addresses with this prefix.
 ///
 /// This SS58 version/format is also only used by the node and not by the runtime.
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 pub fn set_default_ss58_version(new_default: Ss58AddressFormat) {
 	DEFAULT_VERSION.store(new_default.into(), core::sync::atomic::Ordering::Relaxed);
 }
@@ -464,7 +459,7 @@ impl<T: Sized + AsMut<[u8]> + AsRef<[u8]> + Public + Derive> Ss58Codec for T {
 
 // Use the default implementations of the trait in serde feature.
 // The std implementation is not available because of std only crate Regex.
-#[cfg(all(not(feature = "std"), feature = "serde", feature = "full_crypto"))]
+#[cfg(all(not(feature = "std"), feature = "serde"))]
 impl<T: Sized + AsMut<[u8]> + AsRef<[u8]> + Public + Derive> Ss58Codec for T {}
 
 /// Trait used for types that are really just a fixed-length array.
@@ -519,7 +514,7 @@ impl ByteArray for AccountId32 {
 	const LEN: usize = 32;
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl Ss58Codec for AccountId32 {}
 
 impl AsRef<[u8]> for AccountId32 {
@@ -603,7 +598,7 @@ impl sp_std::fmt::Debug for AccountId32 {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl serde::Serialize for AccountId32 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -613,7 +608,7 @@ impl serde::Serialize for AccountId32 {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for AccountId32 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where

@@ -29,7 +29,6 @@ sp-std = { version = "5.0.0", default-features = false, path = "../../std" }
 [features]
 default = ["std"]
 std = [
-	"full_crypto",
 	"codec/std",
 	"grandpa/std",
 	"log/std",
@@ -50,12 +49,4 @@ serde = [
 	"sp-application-crypto/serde",
 	"sp-core/serde",
 	"sp-runtime/serde",
-]
-
-# This feature enables all crypto primitives for `no_std` builds like microcontrollers
-# or Intel SGX.
-# For the regular wasm runtime builds this should not be used.
-full_crypto = [
-	"sp-application-crypto/full_crypto",
-	"sp-core/full_crypto",
 ]

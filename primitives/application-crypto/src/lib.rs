@@ -22,8 +22,10 @@
 
 pub use sp_core::crypto::{key_types, CryptoTypeId, KeyTypeId};
 #[doc(hidden)]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
+pub use sp_core::crypto::{DeriveJunction, Ss58Codec};
 #[cfg(feature = "full_crypto")]
-pub use sp_core::crypto::{DeriveJunction, Pair, SecretStringError, Ss58Codec};
+pub use sp_core::crypto::{Pair, SecretStringError};
 #[doc(hidden)]
 pub use sp_core::{
 	self,
@@ -374,9 +376,8 @@ macro_rules! app_crypto_public_common {
 	};
 }
 
-/// Implements traits for the public key type if `feature = "serde"` and `feature = "full_crypto"`
-/// are enabled.
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+/// Implements traits for the public key type if `feature = "serde"` are enabled.
+#[cfg(feature = "serde")]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! app_crypto_public_common_if_serde {
@@ -425,7 +426,7 @@ macro_rules! app_crypto_public_common_if_serde {
 	};
 }
 
-#[cfg(not(all(feature = "serde", feature = "full_crypto")))]
+#[cfg(not(feature = "serde"))]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! app_crypto_public_common_if_serde {

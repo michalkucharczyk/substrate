@@ -21,16 +21,22 @@
 //! Note: `CHAIN_CODE_LENGTH` must be equal to `crate::crypto::JUNCTION_ID_LEN`
 //! for this to work.
 // end::description[]
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
+use crate::crypto::DeriveJunction;
+#[cfg(feature = "serde")]
 use crate::crypto::Ss58Codec;
 #[cfg(feature = "full_crypto")]
-use crate::crypto::{DeriveJunction, Infallible, Pair as TraitPair, SecretStringError};
+use crate::crypto::{Infallible, Pair as TraitPair, SecretStringError};
 #[cfg(feature = "std")]
 use bip39::{Language, Mnemonic, MnemonicType};
 #[cfg(feature = "full_crypto")]
 use schnorrkel::{
-	derive::{ChainCode, Derivation, CHAIN_CODE_LENGTH},
-	signing_context, ExpansionMode, Keypair, MiniSecretKey, PublicKey, SecretKey,
+	derive::CHAIN_CODE_LENGTH, signing_context, ExpansionMode, Keypair, MiniSecretKey, SecretKey,
+};
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
+use schnorrkel::{
+	derive::{ChainCode, Derivation},
+	PublicKey,
 };
 #[cfg(feature = "full_crypto")]
 use sp_std::vec::Vec;
@@ -187,7 +193,7 @@ impl sp_std::fmt::Debug for Public {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl Serialize for Public {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -197,7 +203,7 @@ impl Serialize for Public {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Public {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -352,7 +358,7 @@ impl Derive for Public {
 	/// Derive a child key from a series of given junctions.
 	///
 	/// `None` if there are any hard junctions in there.
-	#[cfg(all(feature = "serde", feature = "full_crypto"))]
+	#[cfg(feature = "serde")]
 	fn derive<Iter: Iterator<Item = DeriveJunction>>(&self, path: Iter) -> Option<Public> {
 		let mut acc = PublicKey::from_bytes(self.as_ref()).ok()?;
 		for j in path {

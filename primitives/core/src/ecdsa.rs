@@ -21,7 +21,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime_interface::pass_by::PassByInner;
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 use crate::crypto::Ss58Codec;
 use crate::crypto::{
 	ByteArray, CryptoType, CryptoTypeId, CryptoTypePublicPair, Derive, Public as TraitPublic,
@@ -185,7 +185,7 @@ impl sp_std::fmt::Debug for Public {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl Serialize for Public {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -195,7 +195,7 @@ impl Serialize for Public {
 	}
 }
 
-#[cfg(all(feature = "serde", feature = "full_crypto"))]
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Public {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
