@@ -38,7 +38,7 @@ pub use secrecy::SecretString;
 use sp_runtime_interface::pass_by::PassByInner;
 #[doc(hidden)]
 pub use sp_std::ops::Deref;
-#[cfg(feature = "serde")]
+#[cfg(all(not(feature = "std"), feature = "serde"))]
 use sp_std::{
 	alloc::{format, string::String},
 	vec,
