@@ -39,7 +39,7 @@ use sp_runtime::{
 };
 use std::{collections::BTreeSet, pin::Pin, sync::Arc};
 use substrate_test_runtime_client::{
-	runtime::{Block, Extrinsic, Hash, Header, Index, Transfer},
+	runtime::{Block, create_extrinsic, Hash, Header, Index, system2, UncheckedExtrinsic, Transfer},
 	AccountKeyring::*,
 	ClientBlockImportExt,
 };
@@ -86,7 +86,7 @@ fn submission_should_work() {
 	let pool = pool();
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 209))).unwrap();
 
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![209]);
 }
 
@@ -96,7 +96,7 @@ fn multiple_submission_should_work() {
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 209))).unwrap();
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 210))).unwrap();
 
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![209, 210]);
 }
 
@@ -105,7 +105,7 @@ fn early_nonce_should_be_culled() {
 	let pool = pool();
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 208))).unwrap();
 
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, Vec::<Index>::new());
 }
 
@@ -114,11 +114,11 @@ fn late_nonce_should_be_queued() {
 	let pool = pool();
 
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 210))).unwrap();
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, Vec::<Index>::new());
 
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 209))).unwrap();
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![209, 210]);
 }
 
@@ -128,14 +128,14 @@ fn prune_tags_should_work() {
 	let hash209 = block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 209))).unwrap();
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt(Alice, 210))).unwrap();
 
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![209, 210]);
 
 	pool.validated_pool().api().push_block(1, Vec::new(), true);
 	block_on(pool.prune_tags(&BlockId::number(1), vec![vec![209]], vec![hash209]))
 		.expect("Prune tags");
 
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![210]);
 }
 
@@ -148,7 +148,7 @@ fn should_ban_invalid_transactions() {
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, uxt.clone())).unwrap_err();
 
 	// when
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, Vec::<Index>::new());
 
 	// then
@@ -197,7 +197,7 @@ fn should_correctly_prune_transactions_providing_more_than_one_tag() {
 	block_on(pool.submit_one(&BlockId::number(2), SOURCE, xt.clone())).expect("2. Imported");
 	assert_eq!(pool.validated_pool().status().ready, 1);
 	assert_eq!(pool.validated_pool().status().future, 1);
-	let pending: Vec<_> = pool.validated_pool().ready().map(|a| a.data.transfer().nonce).collect();
+	let pending: Vec<_> = pool.validated_pool().ready().map(|a| Transfer::try_from_unchecked_extrinsic(&a.data).unwrap().nonce).collect();
 	assert_eq!(pending, vec![211]);
 
 	// prune it and make sure the pool is empty
@@ -363,7 +363,7 @@ fn should_revalidate_across_many_blocks() {
 
 #[test]
 fn should_push_watchers_during_maintenance() {
-	fn alice_uxt(nonce: u64) -> Extrinsic {
+	fn alice_uxt(nonce: u64) -> UncheckedExtrinsic {
 		uxt(Alice, 209 + nonce)
 	}
 
@@ -472,6 +472,7 @@ fn finalization() {
 
 #[test]
 fn fork_aware_finalization() {
+	sp_tracing::try_init_simple();
 	let api = TestApi::empty();
 	// starting block A1 (last finalized.)
 	let a_header = api.push_block(1, vec![], true);
@@ -696,6 +697,7 @@ fn prune_and_retract_tx_at_same_time() {
 /// blocks are not part of the canonical chain.
 #[test]
 fn resubmit_tx_of_fork_that_is_not_part_of_retracted() {
+	sp_tracing::try_init_simple();
 	let api = TestApi::empty();
 	// starting block A1 (last finalized.)
 	api.push_block(1, vec![], true);
@@ -729,6 +731,9 @@ fn resubmit_tx_of_fork_that_is_not_part_of_retracted() {
 		pool.api().push_block(2, vec![tx1.clone()], false);
 		assert_eq!(pool.status().ready, 1);
 	}
+
+	log::trace!("xxx -> ====================");
+	log::trace!("xxx -> {:#?}", pool.status());
 
 	// Block D2
 	{
@@ -890,6 +895,7 @@ fn ready_set_should_eventually_resolve_when_block_update_arrives() {
 
 #[test]
 fn should_not_accept_old_signatures() {
+	sp_tracing::try_init_simple();
 	let client = Arc::new(substrate_test_runtime_client::new());
 	let best_hash = client.info().best_hash;
 	let finalized_hash = client.info().finalized_hash;
@@ -915,11 +921,11 @@ fn should_not_accept_old_signatures() {
 	)
 	.expect("signature construction failed");
 
-	let xt = Extrinsic::Transfer {
+	let xt = create_extrinsic(system2::pallet::Call::transfer {
 		transfer,
 		signature: old_singature,
 		exhaust_resources_when_not_first: false,
-	};
+	});
 
 	assert_matches::assert_matches!(
 		block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt.clone())),
@@ -975,7 +981,7 @@ fn import_notification_to_pool_maintain_works() {
 fn pruning_a_transaction_should_remove_it_from_best_transaction() {
 	let (pool, api, _guard) = maintained_pool();
 
-	let xt1 = Extrinsic::IncludeData(Vec::new());
+	let xt1 = create_extrinsic(system2::pallet::Call::include_data{data:Vec::new()});
 
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt1.clone())).expect("1. Imported");
 	assert_eq!(pool.status().ready, 1);
@@ -1001,7 +1007,7 @@ fn stale_transactions_are_pruned() {
 	let (pool, api, _guard) = maintained_pool();
 
 	xts.into_iter().for_each(|xt| {
-		block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt.into_signed_tx()))
+		block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt.into_unchecked_extrinsic()))
 			.expect("1. Imported");
 	});
 	assert_eq!(pool.status().ready, 0);
@@ -1010,9 +1016,9 @@ fn stale_transactions_are_pruned() {
 	// Almost the same as our initial transactions, but with some different `amount`s to make them
 	// generate a different hash
 	let xts = vec![
-		Transfer { from: Alice.into(), to: Bob.into(), nonce: 1, amount: 2 }.into_signed_tx(),
-		Transfer { from: Alice.into(), to: Bob.into(), nonce: 2, amount: 2 }.into_signed_tx(),
-		Transfer { from: Alice.into(), to: Bob.into(), nonce: 3, amount: 2 }.into_signed_tx(),
+		Transfer { from: Alice.into(), to: Bob.into(), nonce: 1, amount: 2 }.into_unchecked_extrinsic(),
+		Transfer { from: Alice.into(), to: Bob.into(), nonce: 2, amount: 2 }.into_unchecked_extrinsic(),
+		Transfer { from: Alice.into(), to: Bob.into(), nonce: 3, amount: 2 }.into_unchecked_extrinsic(),
 	];
 
 	// Import block

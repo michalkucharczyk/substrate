@@ -55,8 +55,7 @@ where
 		transfer: substrate_test_runtime::Transfer,
 	) -> Result<(), sp_blockchain::Error> {
 		//todo
-		// self.push(transfer.into_signed_tx())
-		Ok(())
+		self.push(transfer.into_unchecked_extrinsic())
 	}
 
 	fn push_storage_change(
@@ -67,6 +66,7 @@ where
 		//todo
 		// self.push(substrate_test_runtime::Extrinsic::StorageChange(key, value))
 		// Ok(())
-		self.push( create_extrinsic( sp_keyring::Sr25519Keyring::Alice.pair(), system2::pallet::Call::storage_change{ key, value }, None))
+		// self.push( create_extrinsic( sp_keyring::Sr25519Keyring::Alice.pair(), system2::pallet::Call::storage_change{ key, value }, None))
+		self.push( create_extrinsic( system2::pallet::Call::storage_change{ key, value } ))
 	}
 }

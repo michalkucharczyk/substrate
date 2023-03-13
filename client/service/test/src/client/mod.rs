@@ -88,7 +88,7 @@ fn construct_block(
 	state_root: Hash,
 	txs: Vec<Transfer>,
 ) -> (Vec<u8>, Hash) {
-	let transactions = txs.into_iter().map(|tx| tx.into_signed_tx()).collect::<Vec<_>>();
+	let transactions = txs.into_iter().map(|tx| tx.into_unchecked_extrinsic()).collect::<Vec<_>>();
 
 	let iter = transactions.iter().map(Encode::encode);
 	let extrinsics_root = LayoutV0::<BlakeTwo256>::ordered_trie_root(iter).into();
