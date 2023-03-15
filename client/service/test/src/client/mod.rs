@@ -1494,7 +1494,7 @@ fn respects_block_rules() {
 		let mut block_not_ok = client
 			.new_block_at(client.chain_info().genesis_hash, Default::default(), false)
 			.unwrap();
-		block_not_ok.push_storage_change(vec![0], Some(vec![1])).unwrap();
+		block_not_ok.push_storage_change_unsigned(vec![0], Some(vec![1])).unwrap();
 		let block_not_ok = block_not_ok.build().unwrap().block;
 
 		let params = BlockCheckParams {
@@ -1516,7 +1516,7 @@ fn respects_block_rules() {
 
 		// And check good fork (build B[2])
 		let mut block_ok = client.new_block_at(block_ok_1_hash, Default::default(), false).unwrap();
-		block_ok.push_storage_change(vec![0], Some(vec![2])).unwrap();
+		block_ok.push_storage_change_unsigned(vec![0], Some(vec![2])).unwrap();
 		let block_ok = block_ok.build().unwrap().block;
 		assert_eq!(*block_ok.header().number(), 2);
 
@@ -1536,7 +1536,7 @@ fn respects_block_rules() {
 		// And now try bad fork (build B'[2])
 		let mut block_not_ok =
 			client.new_block_at(block_ok_1_hash, Default::default(), false).unwrap();
-		block_not_ok.push_storage_change(vec![0], Some(vec![3])).unwrap();
+		block_not_ok.push_storage_change_unsigned(vec![0], Some(vec![3])).unwrap();
 		let block_not_ok = block_not_ok.build().unwrap().block;
 		assert_eq!(*block_not_ok.header().number(), 2);
 
@@ -1784,6 +1784,32 @@ fn storage_keys_prefix_and_start_key_works() {
 
 #[test]
 fn storage_keys_works() {
+
+	// hexstring -> keys mapping legend (some of them are twox_128 or blake2_256 hashed):
+	// "00771836bebdd29870ff246d305c578c5e0621c4869aa60c02be9adcc98a0d1d" SubstrateTest|Authorities
+	// "00c232cf4e70a5e343317016dc805bf80a6a8cd8ad39958d56f99891b07851e0" balance://1
+	// "085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb" balance://4
+	// "0befda6e1ca4ef40219d588a727f1271"                                 latest
+	// "1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34" balance://0
+	// "1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824" balance://6
+	// "237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204" balance://8
+	// "29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729" balance://9
+	// "3a636f6465"                                                       :code
+	// "3a686561707061676573"                                             :heappages
+	// "52008686cc27f6e5ed83a216929942f8bcd32a396f09664a5698f81371934b56" balance://13
+	// "5348d72ac6cc66e5d8cbecc27b0e0677503b845fe2382d819f83001781788fd5" balance://2
+	// "5c2d5fda66373dabf970e4fb13d277ce91c5233473321129d32b5a8085fa8133" balance://10
+	// "6644b9b8bc315888ac8e41a7968dc2b4141a5403c58acdf70b7e8f7e07bf5081" balance://bob
+	// "66484000ed3f75c95fc7b03f39c20ca1e1011e5999278247d3b2f5e3c3273808" balance://15
+	// "7d5007603a7f5dd729d51d93cf695d6465789443bb967c0d1fe270e388c96eaa" balance://5
+	// "e3b47b6c84c0493481f97c5197d2554f"                                 sys:auth
+	// "811ecfaadcf5f2ee1d67393247e2f71a1662d433e8ce7ff89fb0d4aa9561820b" balance://7
+	// "a93d74caa7ec34ea1b04ce1e5c090245f867d333f0f88278a451e45299654dc5" balance://12
+	// "a9ee1403384afbfc13f13be91ff70bfac057436212e53b9733914382ac942892" balance://11
+	// "cf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f" balance://alice
+
+	sp_tracing::try_init_simple();
+
 	let client = substrate_test_runtime_client::new();
 
 	let block_hash = client.info().best_hash;
@@ -1799,13 +1825,13 @@ fn storage_keys_works() {
 	assert_eq!(
 		res,
 		[
+            "00771836bebdd29870ff246d305c578c5e0621c4869aa60c02be9adcc98a0d1d",
 			"00c232cf4e70a5e343317016dc805bf80a6a8cd8ad39958d56f99891b07851e0",
 			"085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb",
 			"0befda6e1ca4ef40219d588a727f1271",
 			"1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34",
 			"1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824",
 			"237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204",
-			"26aa394eea5630e07c48ae0c9558cef75e0621c4869aa60c02be9adcc98a0d1d",
 			"29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729",
 			"3a636f6465",
 		]
@@ -1821,13 +1847,13 @@ fn storage_keys_works() {
 	assert_eq!(
 		res,
 		[
+            "00771836bebdd29870ff246d305c578c5e0621c4869aa60c02be9adcc98a0d1d",
 			"00c232cf4e70a5e343317016dc805bf80a6a8cd8ad39958d56f99891b07851e0",
 			"085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb",
 			"0befda6e1ca4ef40219d588a727f1271",
 			"1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34",
 			"1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824",
 			"237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204",
-			"26aa394eea5630e07c48ae0c9558cef75e0621c4869aa60c02be9adcc98a0d1d",
 			"29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729",
 			"3a636f6465",
 		]

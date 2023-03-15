@@ -147,9 +147,7 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(100)]
-		pub fn storage_change(origin: OriginFor<T>, key: Vec<u8>, value: Option<Vec<u8>>) -> DispatchResult {
-			log::trace!("Hey storage_change: {:?} {:?}", key, value);
-			frame_system::ensure_signed(origin)?;
+		pub fn storage_change_unsigned(origin: OriginFor<T>, key: Vec<u8>, value: Option<Vec<u8>>) -> DispatchResult {
 			match value {
 				Some(value) => storage::unhashed::put_raw(&key, &value),
 				None => storage::unhashed::kill(&key),
@@ -159,13 +157,24 @@ pub mod pallet {
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(100)]
+		pub fn storage_change(origin: OriginFor<T>, key: Vec<u8>, value: Option<Vec<u8>>) -> DispatchResult {
+			frame_system::ensure_signed(origin)?;
+			match value {
+				Some(value) => storage::unhashed::put_raw(&key, &value),
+				None => storage::unhashed::kill(&key),
+			}
+			Ok(())
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight(100)]
 		pub fn offchain_index_set(origin: OriginFor<T>, key: Vec<u8>, value: Vec<u8>) -> DispatchResult {
 			frame_system::ensure_signed(origin)?;
 			sp_io::offchain_index::set(&key, &value);
 			Ok(())
 		}
 
-		#[pallet::call_index(5)]
+		#[pallet::call_index(6)]
 		#[pallet::weight(100)]
 		pub fn offchain_index_clear(origin: OriginFor<T>, key: Vec<u8>) -> DispatchResult {
 			frame_system::ensure_signed(origin)?;
@@ -173,7 +182,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(6)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(100)]
 		pub fn store(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
 			frame_system::ensure_signed(origin)?;
@@ -258,6 +267,14 @@ pub fn validate_runtime_call<T: pallet::Config>(
 
 			if transfer.nonce > expected_nonce + 64 {
 				return InvalidTransaction::Future.into()
+			}
+
+			// check sender balance
+			let from_balance_key = transfer.from.to_keyed_vec(BALANCE_OF);
+			let from_balance: u64 = storage::hashed::get_or(&blake2_256, &from_balance_key, 0);
+
+			if transfer.amount > from_balance {
+				return Err(InvalidTransaction::Payment.into())
 			}
 
 			let encode = |from: &AccountId, nonce: u64| (from, nonce).encode();

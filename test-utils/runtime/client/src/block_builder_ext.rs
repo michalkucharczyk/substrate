@@ -31,8 +31,16 @@ pub trait BlockBuilderExt {
 		&mut self,
 		transfer: substrate_test_runtime::Transfer,
 	) -> Result<(), sp_blockchain::Error>;
+
 	/// Add storage change extrinsic to the block.
 	fn push_storage_change(
+		&mut self,
+		key: Vec<u8>,
+		value: Option<Vec<u8>>,
+	) -> Result<(), sp_blockchain::Error>;
+
+	/// Add unsigned storage change extrinsic to the block.
+	fn push_storage_change_unsigned(
 		&mut self,
 		key: Vec<u8>,
 		value: Option<Vec<u8>>,
@@ -64,9 +72,15 @@ where
 		value: Option<Vec<u8>>,
 	) -> Result<(), sp_blockchain::Error> {
 		//todo
-		// self.push(substrate_test_runtime::Extrinsic::StorageChange(key, value))
-		// Ok(())
-		// self.push( create_extrinsic( sp_keyring::Sr25519Keyring::Alice.pair(), system2::pallet::Call::storage_change{ key, value }, None))
 		self.push( create_extrinsic( system2::pallet::Call::storage_change{ key, value } ))
+	}
+
+	fn push_storage_change_unsigned(
+		&mut self,
+		key: Vec<u8>,
+		value: Option<Vec<u8>>,
+	) -> Result<(), sp_blockchain::Error> {
+		//todo
+		self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::storage_change{ key, value }.into() ))
 	}
 }
