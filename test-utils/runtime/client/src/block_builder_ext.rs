@@ -45,6 +45,11 @@ pub trait BlockBuilderExt {
 		key: Vec<u8>,
 		value: Option<Vec<u8>>,
 	) -> Result<(), sp_blockchain::Error>;
+
+
+	// fn push_deposit_log(&mut self, log: sp_finality_grandpa::ConsensusLog<sp_runtime::traits::NumberFor<substrate_test_runtime::Block>>) -> Result<(), sp_blockchain::Error>;
+
+	fn push_deposit_log_digest_item(&mut self, log: sp_runtime::generic::DigestItem)  -> Result<(), sp_blockchain::Error>;
 }
 
 impl<'a, A, B> BlockBuilderExt
@@ -82,5 +87,13 @@ where
 	) -> Result<(), sp_blockchain::Error> {
 		//todo
 		self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::storage_change{ key, value }.into() ))
+	}
+
+	// fn push_deposit_log(&mut self, log: sp_finality_grandpa::ConsensusLog<sp_runtime::traits::NumberFor<substrate_test_runtime::Block>>) -> Result<(), sp_blockchain::Error> {
+	// 	self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::deposit_log{ log }.into() ))
+	// }
+
+	fn push_deposit_log_digest_item(&mut self, log: sp_runtime::generic::DigestItem)  -> Result<(), sp_blockchain::Error> {
+		self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::deposit_log_digest_item{ log }.into() ))
 	}
 }

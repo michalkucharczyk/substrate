@@ -51,7 +51,7 @@ use std::{
 	collections::{HashMap, HashSet},
 	pin::Pin,
 };
-use substrate_test_runtime_client::runtime::BlockNumber;
+use substrate_test_runtime_client::{BlockBuilderExt, runtime::BlockNumber};
 use tokio::runtime::Handle;
 
 use authorities::AuthoritySet;
@@ -395,6 +395,16 @@ async fn run_to_completion(
 	run_to_completion_with(blocks, net, peers, |_| None).await
 }
 
+fn add_scheduled_change2(builder: &mut impl BlockBuilderExt, change: ScheduledChange<BlockNumber>) {
+	// let _ = builder.push_deposit_log( sp_finality_grandpa::ConsensusLog::ScheduledChange(change)).unwrap();
+	let _ = builder.push_deposit_log_digest_item(
+		DigestItem::Consensus(
+			GRANDPA_ENGINE_ID,
+			sp_finality_grandpa::ConsensusLog::ScheduledChange(change).encode(),
+		)
+	).unwrap();
+}
+
 fn add_scheduled_change(block: &mut Block, change: ScheduledChange<BlockNumber>) {
 	block.header.digest_mut().push(DigestItem::Consensus(
 		GRANDPA_ENGINE_ID,
@@ -402,15 +412,25 @@ fn add_scheduled_change(block: &mut Block, change: ScheduledChange<BlockNumber>)
 	));
 }
 
+fn add_forced_change2(
+	builder: &mut impl BlockBuilderExt, 
+	median_last_finalized: BlockNumber,
+	change: ScheduledChange<BlockNumber>,
+) {
+	// let _ = builder.push_deposit_log( sp_finality_grandpa::ConsensusLog::ForcedChange(median_last_finalized, change),).unwrap();
+	let _ = builder.push_deposit_log_digest_item(
+		DigestItem::Consensus(
+			GRANDPA_ENGINE_ID,
+			sp_finality_grandpa::ConsensusLog::ForcedChange(median_last_finalized, change).encode(),)
+	).unwrap();
+}
+
 fn add_forced_change(
 	block: &mut Block,
 	median_last_finalized: BlockNumber,
 	change: ScheduledChange<BlockNumber>,
 ) {
-	block.header.digest_mut().push(DigestItem::Consensus(
-		GRANDPA_ENGINE_ID,
-		sp_finality_grandpa::ConsensusLog::ForcedChange(median_last_finalized, change).encode(),
-	));
+	block.header.digest_mut().push(DigestItem::Consensus( GRANDPA_ENGINE_ID, sp_finality_grandpa::ConsensusLog::ForcedChange(median_last_finalized, change).encode(),));
 }
 
 #[tokio::test]
@@ -594,28 +614,24 @@ async fn transition_3_voters_twice_1_full_observer() {
 					},
 					14 => {
 						// generate transition at block 15, applied at 20.
-						net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |builder| {
-							let mut block = builder.build().unwrap().block;
-							add_scheduled_change(
-								&mut block,
+						net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |mut builder| {
+							add_scheduled_change2(
+								&mut builder,
 								ScheduledChange { next_authorities: make_ids(peers_b), delay: 4 },
 							);
-
-							block
+							builder.build().unwrap().block
 						});
 						net.lock().peer(0).push_blocks(5, false);
 					},
 					20 => {
 						// at block 21 we do another transition, but this time instant.
 						// add more until we have 30.
-						net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |builder| {
-							let mut block = builder.build().unwrap().block;
-							add_scheduled_change(
-								&mut block,
+						net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |mut builder| {
+							add_scheduled_change2(
+								&mut builder,
 								ScheduledChange { next_authorities: make_ids(&peers_c), delay: 0 },
 							);
-
-							block
+							builder.build().unwrap().block
 						});
 						net.lock().peer(0).push_blocks(9, false);
 					},
@@ -697,13 +713,12 @@ async fn sync_justifications_on_change_blocks() {
 	// at block 21 we do add a transition which is instant
 	let hashof21 = net
 		.peer(0)
-		.generate_blocks(1, BlockOrigin::File, |builder| {
-			let mut block = builder.build().unwrap().block;
-			add_scheduled_change(
-				&mut block,
+		.generate_blocks(1, BlockOrigin::File, |mut builder| {
+			add_scheduled_change2(
+				&mut builder,
 				ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 },
 			);
-			block
+			builder.build().unwrap().block
 		})
 		.pop()
 		.unwrap();
@@ -767,12 +782,9 @@ async fn finalizes_multiple_pending_changes_in_order() {
 	net.peer(0).push_blocks(20, false);
 
 	// at block 21 we do add a transition which is instant
-	net.peer(0).generate_blocks(1, BlockOrigin::File, |builder| {
+	net.peer(0).generate_blocks(1, BlockOrigin::File, |mut builder| {
+		add_scheduled_change2(&mut builder, ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 });
 		let mut block = builder.build().unwrap().block;
-		add_scheduled_change(
-			&mut block,
-			ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 },
-		);
 		block
 	});
 
@@ -780,12 +792,9 @@ async fn finalizes_multiple_pending_changes_in_order() {
 	net.peer(0).push_blocks(4, false);
 
 	// at block 26 we add another which is enacted at block 30
-	net.peer(0).generate_blocks(1, BlockOrigin::File, |builder| {
+	net.peer(0).generate_blocks(1, BlockOrigin::File, |mut builder| {
+		add_scheduled_change2(&mut builder, ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 });
 		let mut block = builder.build().unwrap().block;
-		add_scheduled_change(
-			&mut block,
-			ScheduledChange { next_authorities: make_ids(peers_c), delay: 4 },
-		);
 		block
 	});
 
@@ -822,23 +831,21 @@ async fn force_change_to_new_set() {
 	let voters_future = initialize_grandpa(&mut net, peers_a);
 	let net = Arc::new(Mutex::new(net));
 
-	net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |builder| {
-		let mut block = builder.build().unwrap().block;
-
+	net.lock().peer(0).generate_blocks(1, BlockOrigin::File, |mut builder| {
 		// add a forced transition at block 12.
-		add_forced_change(
-			&mut block,
+		add_forced_change2(
+			&mut builder,
 			0,
 			ScheduledChange { next_authorities: voters.clone(), delay: 10 },
 		);
 
 		// add a normal transition too to ensure that forced changes take priority.
-		add_scheduled_change(
-			&mut block,
+		add_scheduled_change2(
+			&mut builder,
 			ScheduledChange { next_authorities: make_ids(genesis_authorities), delay: 5 },
 		);
 
-		block
+		builder.build().unwrap().block
 	});
 
 	net.lock().peer(0).push_blocks(25, false);
@@ -864,6 +871,7 @@ async fn force_change_to_new_set() {
 
 #[tokio::test]
 async fn allows_reimporting_change_blocks() {
+	sp_tracing::try_init_simple();
 	let peers_a = &[Ed25519Keyring::Alice, Ed25519Keyring::Bob, Ed25519Keyring::Charlie];
 	let peers_b = &[Ed25519Keyring::Alice, Ed25519Keyring::Bob];
 	let voters = make_ids(peers_a);
@@ -874,14 +882,14 @@ async fn allows_reimporting_change_blocks() {
 	let (mut block_import, ..) = net.make_block_import(client.clone());
 
 	let full_client = client.as_client();
-	let builder = full_client
+	let mut builder = full_client
 		.new_block_at(full_client.chain_info().genesis_hash, Default::default(), false)
 		.unwrap();
-	let mut block = builder.build().unwrap().block;
-	add_scheduled_change(
-		&mut block,
-		ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 },
-	);
+
+	add_scheduled_change2(&mut builder, ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 });
+	let block = builder.build().unwrap().block;
+
+	log::trace!("xxx: block: {block:#?}");
 
 	let block = || {
 		let block = block.clone();
@@ -921,15 +929,16 @@ async fn test_bad_justification() {
 	let (mut block_import, ..) = net.make_block_import(client.clone());
 
 	let full_client = client.as_client();
-	let builder = full_client
+	let mut builder = full_client
 		.new_block_at(full_client.chain_info().genesis_hash, Default::default(), false)
 		.unwrap();
-	let mut block = builder.build().unwrap().block;
 
-	add_scheduled_change(
-		&mut block,
+	add_scheduled_change2(
+		&mut builder,
 		ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 },
 	);
+
+	let mut block = builder.build().unwrap().block;
 
 	let block = || {
 		let block = block.clone();
@@ -1630,10 +1639,10 @@ async fn grandpa_environment_checks_if_best_block_is_descendent_of_finality_targ
 		BlockId::Number(4),
 		6,
 		BlockOrigin::File,
-		|builder| {
-			let mut block = builder.build().unwrap().block;
-			block.header.digest_mut().push(DigestItem::Other(vec![1]));
-			block
+		|mut builder| {
+			let _ = builder.push_deposit_log_digest_item(DigestItem::Other(vec![1])).unwrap();
+			// block.header.digest_mut().push(DigestItem::Other(vec![1]));
+			builder.build().unwrap().block
 		},
 		false,
 		false,
@@ -1964,13 +1973,12 @@ async fn revert_prunes_authority_changes() {
 
 	type TestBlockBuilder<'a> =
 		BlockBuilder<'a, Block, PeersFullClient, substrate_test_runtime_client::Backend>;
-	let edit_block = |builder: TestBlockBuilder| {
-		let mut block = builder.build().unwrap().block;
-		add_scheduled_change(
-			&mut block,
+	let edit_block = |mut builder: TestBlockBuilder| {
+		add_scheduled_change2(
+			&mut builder,
 			ScheduledChange { next_authorities: make_ids(peers), delay: 0 },
 		);
-		block
+		builder.build().unwrap().block
 	};
 
 	let api = TestApi::new(make_ids(peers));
@@ -2012,10 +2020,10 @@ async fn revert_prunes_authority_changes() {
 			BlockId::Number(23),
 			3,
 			BlockOrigin::File,
-			|builder| {
-				let mut block = builder.build().unwrap().block;
-				block.header.digest_mut().push(DigestItem::Other(vec![1]));
-				block
+			|mut builder| {
+				let _ = builder.push_deposit_log_digest_item(DigestItem::Other(vec![1])).unwrap();
+				// block.header.digest_mut().push(DigestItem::Other(vec![1]));
+				builder.build().unwrap().block
 			},
 			false,
 			false,
@@ -2044,10 +2052,10 @@ async fn revert_prunes_authority_changes() {
 			BlockId::Number(25),
 			3,
 			BlockOrigin::File,
-			|builder| {
-				let mut block = builder.build().unwrap().block;
-				block.header.digest_mut().push(DigestItem::Other(vec![2]));
-				block
+			|mut builder| {
+				let _ = builder.push_deposit_log_digest_item(DigestItem::Other(vec![2])).unwrap();
+				// block.header.digest_mut().push(DigestItem::Other(vec![2]));
+				builder.build().unwrap().block
 			},
 			false,
 			false,

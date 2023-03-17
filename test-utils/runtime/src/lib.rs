@@ -809,10 +809,12 @@ impl_runtime_apis! {
 		}
 
 		fn execute_block(block: Block) {
+			log::trace!("xxx -> b execute_block: {block:#?}");
 			Executive::execute_block(block);
 		}
 
 		fn initialize_block(header: &<Block as BlockT>::Header) {
+			log::trace!("xxx -> b initialize_block: {header:#?}");
 			Executive::initialize_block(header)
 		}
 	}
