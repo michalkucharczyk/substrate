@@ -62,26 +62,33 @@ pub mod pallet {
 		}
 	}
 
-	// #[pallet::hooks]
-	// impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-	// 	fn on_initialize(n: T::BlockNumber) -> Weight {
-	// 		// populate environment.
-	// 		Number::<T>::put(n);
-	// 		storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
-    //         //
-	// 		// try to read something that depends on current header digest
-	// 		// so that it'll be included in execution proof
-	// 		// if let Some(generic::DigestItem::Other(v)) = n.digest().logs().iter().next() {
-	// 		// 	let _: Option<u32> = storage::unhashed::get(v);
-	// 		// }
-    //
-	// 		T::WeightInfo::on_finalize()
-	// 	}
-    //
-	// 	fn on_finalize(n: T::BlockNumber) {
-	// 	}
-    //
-	// }
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			// populate environment.
+			// Number::<T>::put(n);
+			// storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
+            //
+			// try to read something that depends on current header digest
+			// so that it'll be included in execution proof
+			// if let Some(sp_runtime::generic::DigestItem::Other(v)) = n.digest().logs().iter().next() {
+			// 	let _: Option<u32> = storage::unhashed::get(v);
+			// }
+
+			let d = <frame_system::Pallet<T>>::digest();
+
+			frame_support::log::info!(
+				target: "frame::executive",
+				"yyy: on_initialize: {d:#?}",
+			);
+
+			T::WeightInfo::on_finalize()
+		}
+
+		fn on_finalize(n: T::BlockNumber) {
+		}
+
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -191,6 +198,26 @@ pub mod pallet {
 			sp_io::transaction_index::index(extrinsic_index, data.len() as u32, content_hash);
 			Ok(())
 		}
+
+		#[pallet::call_index(8)]
+		#[pallet::weight(100)]
+		pub fn deposit_log_digest_item(origin: OriginFor<T>, log: sp_runtime::generic::DigestItem) -> DispatchResult {
+			<frame_system::Pallet<T>>::deposit_log(log);
+			Ok(())
+		}
+
+
+		// #[pallet::call_index(9)]
+		// #[pallet::weight(100)]
+		// pub fn deposit_log(origin: OriginFor<T>, log: sp_finality_grandpa::ConsensusLog<T::BlockNumber>) -> DispatchResult {
+		// 	<frame_system::Pallet<T>>::deposit_log(
+		// 	sp_runtime::generic::DigestItem::Consensus(
+		// 		sp_finality_grandpa::GRANDPA_ENGINE_ID, log.encode()
+		// 	));
+        //
+		// 	// <frame_system::Pallet<T>>::deposit_log(log);
+		// 	Ok(())
+		// }
 	}
 
 
