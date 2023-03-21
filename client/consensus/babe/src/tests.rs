@@ -136,32 +136,33 @@ impl DummyProposer {
 
 		// figure out if we should add a consensus digest, since the test runtime
 		// doesn't.
-		let epoch_changes = self.factory.epoch_changes.shared_data();
-		let epoch = epoch_changes
-			.epoch_data_for_child_of(
-				descendent_query(&*self.factory.client),
-				&self.parent_hash,
-				self.parent_number,
-				this_slot,
-				|slot| Epoch::genesis(&self.factory.config, slot),
-			)
-			.expect("client has data to find epoch")
-			.expect("can compute epoch for baked block");
-
-		let first_in_epoch = self.parent_slot < epoch.start_slot;
-		if first_in_epoch {
-			// push a `Consensus` digest signalling next change.
-			// we just reuse the same randomness and authorities as the prior
-			// epoch. this will break when we add light client support, since
-			// that will re-check the randomness logic off-chain.
-			let digest_data = ConsensusLog::NextEpochData(NextEpochDescriptor {
-				authorities: epoch.authorities.clone(),
-				randomness: epoch.randomness,
-			})
-			.encode();
-			let digest = DigestItem::Consensus(BABE_ENGINE_ID, digest_data);
-			block.header.digest_mut().push(digest)
-		}
+		// let epoch_changes = self.factory.epoch_changes.shared_data();
+		// let epoch = epoch_changes
+		// 	.epoch_data_for_child_of(
+		// 		descendent_query(&*self.factory.client),
+		// 		&self.parent_hash,
+		// 		self.parent_number,
+		// 		this_slot,
+		// 		|slot| Epoch::genesis(&self.factory.config, slot),
+		// 	)
+		// 	.expect("client has data to find epoch")
+		// 	.expect("can compute epoch for baked block");
+        //
+		// let first_in_epoch = self.parent_slot < epoch.start_slot;
+		// log::trace!("xxx -> propose_with:: first_in_epoch:{first_in_epoch} parent_slot:{} start_slot:{}", self.parent_slot, epoch.start_slot);
+		// if *block.header.number()!=1 && first_in_epoch {
+		// 	// push a `Consensus` digest signalling next change.
+		// 	// we just reuse the same randomness and authorities as the prior
+		// 	// epoch. this will break when we add light client support, since
+		// 	// that will re-check the randomness logic off-chain.
+		// 	let digest_data = ConsensusLog::NextEpochData(NextEpochDescriptor {
+		// 		authorities: epoch.authorities.clone(),
+		// 		randomness: epoch.randomness,
+		// 	})
+		// 	.encode();
+		// 	let digest = DigestItem::Consensus(BABE_ENGINE_ID, digest_data);
+		// 	block.header.digest_mut().push(digest)
+		// }
 
 		// mutate the block header according to the mutator.
 		(self.factory.mutator)(&mut block.header, Stage::PreSeal);
@@ -358,7 +359,7 @@ impl TestNetFactory for BabeTestNet {
 }
 
 #[tokio::test]
-#[should_panic]
+#[should_panic(expected="No BABE pre-runtime digest found")]
 async fn rejects_empty_block() {
 	sp_tracing::try_init_simple();
 	let mut net = BabeTestNet::new(3);
@@ -490,7 +491,7 @@ async fn authoring_blocks() {
 }
 
 #[tokio::test]
-#[should_panic]
+#[should_panic(expected="valid babe headers must contain a predigest")]
 async fn rejects_missing_inherent_digest() {
 	run_one_test(|header: &mut TestHeader, stage| {
 		let v = std::mem::take(&mut header.digest_mut().logs);
@@ -503,7 +504,7 @@ async fn rejects_missing_inherent_digest() {
 }
 
 #[tokio::test]
-#[should_panic]
+#[should_panic(expected="has a bad seal")]
 async fn rejects_missing_seals() {
 	run_one_test(|header: &mut TestHeader, stage| {
 		let v = std::mem::take(&mut header.digest_mut().logs);
@@ -516,7 +517,7 @@ async fn rejects_missing_seals() {
 }
 
 #[tokio::test]
-#[should_panic]
+#[should_panic(expected="Expected epoch change to happen")]
 async fn rejects_missing_consensus_digests() {
 	run_one_test(|header: &mut TestHeader, stage| {
 		let v = std::mem::take(&mut header.digest_mut().logs);
@@ -1049,7 +1050,7 @@ async fn importing_epoch_change_block_prunes_tree() {
 }
 
 #[tokio::test]
-#[should_panic]
+#[should_panic(expected="Slot number must increase: parent slot: 999, this slot: 999")]
 async fn verify_slots_are_strictly_increasing() {
 	let mut net = BabeTestNet::new(1);
 

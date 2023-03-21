@@ -78,11 +78,27 @@ impl GenesisConfig {
 		// Add the extra storage entries.
 		map.extend(self.extra_storage.top.clone().into_iter());
 
+		log::trace!("xxx: genesis_map: map:{map:#?} authorities:{:#?}", self.authorities);
+
 		// Assimilate the system genesis config.
 		let mut storage =
 			Storage { top: map, children_default: self.extra_storage.children_default.clone() };
+
 		<system2::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
 			&system2::GenesisConfig { authorities: self.authorities.clone() },
+			&mut storage,
+		)
+		.expect("Adding `system::GensisConfig` to the genesis");
+
+		// todo: make config single and generic function, avoid code duplication
+		<pallet_babe::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
+			&pallet_babe::GenesisConfig { 
+				authorities: self.authorities.clone().into_iter().map(|x|(x, 1)).collect(),
+				epoch_config: Some(sp_consensus_babe::BabeEpochConfiguration {
+					c: (3, 10),
+					allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryPlainSlots,
+				})
+			},
 			&mut storage,
 		)
 		.expect("Adding `system::GensisConfig` to the genesis");

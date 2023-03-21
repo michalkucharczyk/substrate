@@ -1797,6 +1797,11 @@ fn storage_keys_works() {
 	// "085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb" balance://4
 	// "0befda6e1ca4ef40219d588a727f1271"                                 latest
 	// "1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34" balance://0
+	// "1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d" Babe|Authorities
+	// "1cb6f36e027abb2091cfb5110ab5087f66e8f035c8adbe7f1547b43c51e6f8a4" Babe|SegmentIndex
+	// "1cb6f36e027abb2091cfb5110ab5087faacf00b9b41fda7a9268821c2a2b3e4c" Babe|NextAuthorities
+	// "1cb6f36e027abb2091cfb5110ab5087fdc6b171b77304263c292cc3ea5ed31ef" Babe|EpochConfig
+	// 
 	// "1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824" balance://6
 	// "237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204" balance://8
 	// "29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729" balance://9
@@ -1825,7 +1830,7 @@ fn storage_keys_works() {
 	let res: Vec<_> = client
 		.storage_keys(block_hash, Some(&prefix), None)
 		.unwrap()
-		.take(9)
+		.take(13)
 		.map(|x| array_bytes::bytes2hex("", &x.0))
 		.collect();
 	assert_eq!(
@@ -1836,6 +1841,10 @@ fn storage_keys_works() {
 			"085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb",
 			"0befda6e1ca4ef40219d588a727f1271",
 			"1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34",
+			"1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d",
+			"1cb6f36e027abb2091cfb5110ab5087f66e8f035c8adbe7f1547b43c51e6f8a4",
+			"1cb6f36e027abb2091cfb5110ab5087faacf00b9b41fda7a9268821c2a2b3e4c",
+			"1cb6f36e027abb2091cfb5110ab5087fdc6b171b77304263c292cc3ea5ed31ef",
 			"1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824",
 			"237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204",
 			"29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729",
@@ -1847,7 +1856,7 @@ fn storage_keys_works() {
 	let res: Vec<_> = client
 		.storage_keys(block_hash, Some(&prefix), Some(&StorageKey("".into())))
 		.unwrap()
-		.take(9)
+		.take(13)
 		.map(|x| array_bytes::bytes2hex("", &x.0))
 		.collect();
 	assert_eq!(
@@ -1858,6 +1867,10 @@ fn storage_keys_works() {
 			"085b2407916e53a86efeb8b72dbe338c4b341dab135252f96b6ed8022209b6cb",
 			"0befda6e1ca4ef40219d588a727f1271",
 			"1a560ecfd2a62c2b8521ef149d0804eb621050e3988ed97dca55f0d7c3e6aa34",
+			"1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d",
+			"1cb6f36e027abb2091cfb5110ab5087f66e8f035c8adbe7f1547b43c51e6f8a4",
+			"1cb6f36e027abb2091cfb5110ab5087faacf00b9b41fda7a9268821c2a2b3e4c",
+			"1cb6f36e027abb2091cfb5110ab5087fdc6b171b77304263c292cc3ea5ed31ef",
 			"1d66850d32002979d67dd29dc583af5b2ae2a1f71c1f35ad90fff122be7a3824",
 			"237498b98d8803334286e9f0483ef513098dd3c1c22ca21c4dc155b4ef6cc204",
 			"29b9db10ec5bf7907d8f74b5e60aa8140c4fbdd8127a1ee5600cb98e5ec01729",
