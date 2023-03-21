@@ -415,7 +415,7 @@ where
 		// Reset events before apply runtime upgrade hook.
 		// This is required to preserve events from runtime upgrade hook.
 		// This means the format of all the event related storages must always be compatible.
-		// <frame_system::Pallet<System>>::reset_events();
+		<frame_system::Pallet<System>>::reset_events();
 
 		let mut weight = Weight::zero();
 		if Self::runtime_upgraded() {
