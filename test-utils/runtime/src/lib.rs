@@ -681,17 +681,18 @@ impl pallet_babe::Config for Runtime {
 	type EpochChangeTrigger = pallet_babe::SameAuthoritiesForever;
 	type DisabledValidators = ();
 
-	type KeyOwnerProofSystem = ();
+	// type KeyOwnerProofSystem = ();
 
-	type KeyOwnerProof =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, AuthorityId)>>::Proof;
+	type KeyOwnerProof = sp_core::Void;
+	type EquivocationReportSystem = ();
+	// 	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, AuthorityId)>>::Proof;
 
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		AuthorityId,
-	)>>::IdentificationTuple;
+	// type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
+	// 	KeyTypeId,
+	// 	AuthorityId,
+	// )>>::IdentificationTuple;
 
-	type HandleEquivocation = ();
+	// type HandleEquivocation = ();
 	type WeightInfo = ();
 
 	type MaxAuthorities = ConstU32<10>;
@@ -821,6 +822,13 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
+			unimplemented!()
+		}
+
+		fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+			unimplemented!()
+		}
+		fn metadata_versions() -> sp_std::vec::Vec<u32> {
 			unimplemented!()
 		}
 	}
@@ -1043,29 +1051,29 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_finality_grandpa::GrandpaApi<Block> for Runtime {
-		fn grandpa_authorities() -> sp_finality_grandpa::AuthorityList {
+	impl sp_consensus_grandpa::GrandpaApi<Block> for Runtime {
+		fn grandpa_authorities() -> sp_consensus_grandpa::AuthorityList {
 			Vec::new()
 		}
 
-		fn current_set_id() -> sp_finality_grandpa::SetId {
+		fn current_set_id() -> sp_consensus_grandpa::SetId {
 			0
 		}
 
 		fn submit_report_equivocation_unsigned_extrinsic(
-			_equivocation_proof: sp_finality_grandpa::EquivocationProof<
+			_equivocation_proof: sp_consensus_grandpa::EquivocationProof<
 			<Block as BlockT>::Hash,
 			NumberFor<Block>,
 			>,
-			_key_owner_proof: sp_finality_grandpa::OpaqueKeyOwnershipProof,
+			_key_owner_proof: sp_consensus_grandpa::OpaqueKeyOwnershipProof,
 		) -> Option<()> {
 			None
 		}
 
 		fn generate_key_ownership_proof(
-			_set_id: sp_finality_grandpa::SetId,
-			_authority_id: sp_finality_grandpa::AuthorityId,
-		) -> Option<sp_finality_grandpa::OpaqueKeyOwnershipProof> {
+			_set_id: sp_consensus_grandpa::SetId,
+			_authority_id: sp_consensus_grandpa::AuthorityId,
+		) -> Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof> {
 			None
 		}
 	}

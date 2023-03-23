@@ -28,4 +28,4 @@ substrate-test-runtime = { version = "2.0.0", path = "../../runtime", features =
 frame-system = { version = "4.0.0-dev", default-features = false, path = "../../../frame/system" }
 sp-keyring = { version = "7.0.0", path = "../../../primitives/keyring" }
 log = { version = "0.4.17", default-features = false }
-sp-finality-grandpa = { version = "4.0.0-dev", path = "../../../primitives/finality-grandpa" }
+sp-consensus-grandpa = { version = "4.0.0-dev", path = "../../../primitives/consensus/grandpa/" }
