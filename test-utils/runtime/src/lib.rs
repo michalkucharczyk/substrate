@@ -811,12 +811,14 @@ impl_runtime_apis! {
 
 		fn execute_block(block: Block) {
 			log::trace!("xxx -> b execute_block: {block:#?}");
-			Executive::execute_block(block);
+			Executive::execute_block(block.clone());
+			log::trace!("xxx -> a execute_block: {block:#?}");
 		}
 
 		fn initialize_block(header: &<Block as BlockT>::Header) {
 			log::trace!("xxx -> b initialize_block: {header:#?}");
-			Executive::initialize_block(header)
+			Executive::initialize_block(header);
+			log::trace!("xxx -> a initialize_block: {header:#?}");
 		}
 	}
 
@@ -864,7 +866,10 @@ impl_runtime_apis! {
 		}
 
 		fn finalize_block() -> <Block as BlockT>::Header {
-			Executive::finalize_block()
+			log::trace!("xxx -> b finalize_block");
+			let header = Executive::finalize_block();
+			log::trace!("xxx -> a finalize_block: {header:#?}");
+			header
 		}
 
 		fn inherent_extrinsics(_data: InherentData) -> Vec<<Block as BlockT>::Extrinsic> {

@@ -139,7 +139,9 @@ impl<H: Hasher> From<&StorageProof> for crate::MemoryDB<H> {
 	fn from(proof: &StorageProof) -> Self {
 		let mut db = crate::MemoryDB::default();
 		proof.iter_nodes().for_each(|n| {
-			db.insert(crate::EMPTY_PREFIX, &n);
+			let k1 : H::Out = db.insert(crate::EMPTY_PREFIX, &n);
+			let k : Vec<u8> = k1.as_ref().try_into().unwrap();
+			log::trace!("xxx from:insert EPMTY_PREFIX {:?} -> {:?}", sp_core::hexdisplay::HexDisplay::from(n), sp_core::hexdisplay::HexDisplay::from(&k));
 		});
 		db
 	}

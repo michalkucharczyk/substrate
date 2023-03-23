@@ -66,7 +66,7 @@ substrate-wasm-builder = { version = "5.0.0-dev", path = "../../utils/wasm-build
 
 [features]
 default = [
-	"std",
+	"std", "force-debug",
 ]
 std = [
 	"pallet-beefy-mmr/std",

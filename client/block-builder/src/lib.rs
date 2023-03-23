@@ -320,6 +320,7 @@ mod tests {
 
 	#[test]
 	fn block_building_storage_proof_does_not_include_runtime_by_default() {
+		sp_tracing::try_init_simple();
 		let builder = substrate_test_runtime_client::TestClientBuilder::new();
 		let backend = builder.backend();
 		let client = builder.build();
@@ -337,6 +338,10 @@ mod tests {
 		.unwrap();
 
 		let proof = block.proof.expect("Proof is build on request");
+
+		log::trace!("block: {:#?}", block.block.clone());
+		log::trace!("proof: {:?}", proof);
+		log::trace!("block.storage_changes.transaction_storage_root: {:?}", block.storage_changes.transaction_storage_root);
 
 		let backend = sp_state_machine::create_proof_check_backend::<Blake2Hasher>(
 			block.storage_changes.transaction_storage_root,

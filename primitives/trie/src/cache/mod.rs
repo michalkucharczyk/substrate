@@ -557,6 +557,7 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 			self.stats.node_cache.shared_fetch_attempts.fetch_add(1, Ordering::Relaxed);
 			if let Some(node) = self.shared_cache.peek_node(&hash) {
 				self.stats.node_cache.shared_hits.fetch_add(1, Ordering::Relaxed);
+				tracing::trace!(target:LOG_TARGET, "xxx: TrieCache::get_or_insert_node: {:#?}", std::backtrace::Backtrace::force_capture());
 				tracing::trace!(target: LOG_TARGET, ?hash, "Serving node from shared cache");
 
 				return Ok(NodeCached::<H::Out> { node: node.clone(), is_from_shared_cache: true })
@@ -565,7 +566,8 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 			// It was not in the shared cache; try fetching it from the database.
 			match fetch_node() {
 				Ok(node) => {
-					tracing::trace!(target: LOG_TARGET, ?hash, "Serving node from database");
+					tracing::trace!(target:LOG_TARGET, "xxx: TrieCache::get_or_insert_node: {:#?}", std::backtrace::Backtrace::force_capture());
+					tracing::trace!(target:LOG_TARGET, ?hash, "Serving node from database");
 					Ok(NodeCached::<H::Out> { node, is_from_shared_cache: false })
 				},
 				Err(error) => {
@@ -576,6 +578,7 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 		});
 
 		if is_local_cache_hit {
+			tracing::trace!(target:LOG_TARGET, "xxx: TrieCache::get_or_insert_node: {:#?}", std::backtrace::Backtrace::force_capture());
 			tracing::trace!(target: LOG_TARGET, ?hash, "Serving node from local cache");
 			self.stats.node_cache.local_hits.fetch_add(1, Ordering::Relaxed);
 		}
@@ -597,6 +600,7 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 			self.stats.node_cache.shared_fetch_attempts.fetch_add(1, Ordering::Relaxed);
 			if let Some(node) = self.shared_cache.peek_node(&hash) {
 				self.stats.node_cache.shared_hits.fetch_add(1, Ordering::Relaxed);
+				tracing::trace!(target:LOG_TARGET, "xxx: TrieCache::get_node: {:#?}", std::backtrace::Backtrace::force_capture());
 				tracing::trace!(target: LOG_TARGET, ?hash, "Serving node from shared cache");
 
 				Ok(NodeCached::<H::Out> { node: node.clone(), is_from_shared_cache: true })
@@ -608,6 +612,7 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 		});
 
 		if is_local_cache_hit {
+			tracing::trace!(target:LOG_TARGET, "xxx: TrieCache::get_node: {:#?}", std::backtrace::Backtrace::force_capture());
 			tracing::trace!(target: LOG_TARGET, ?hash, "Serving node from local cache");
 			self.stats.node_cache.local_hits.fetch_add(1, Ordering::Relaxed);
 		}
