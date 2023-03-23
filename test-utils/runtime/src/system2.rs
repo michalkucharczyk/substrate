@@ -66,8 +66,8 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
 			// populate environment.
-			// Number::<T>::put(n);
-			// storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
+			Number::<T>::put(n);
+			storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
             //
 			// try to read something that depends on current header digest
 			// so that it'll be included in execution proof
