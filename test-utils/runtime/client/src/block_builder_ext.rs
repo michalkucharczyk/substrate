@@ -22,7 +22,6 @@ use sp_api::{ApiExt, ProvideRuntimeApi};
 
 use sc_block_builder::BlockBuilderApi;
 use substrate_test_runtime::*;
-use frame_system::CheckNonce;
 
 /// Extension trait for test block builder.
 pub trait BlockBuilderExt {
@@ -47,8 +46,7 @@ pub trait BlockBuilderExt {
 	) -> Result<(), sp_blockchain::Error>;
 
 
-	// fn push_deposit_log(&mut self, log: sp_finality_grandpa::ConsensusLog<sp_runtime::traits::NumberFor<substrate_test_runtime::Block>>) -> Result<(), sp_blockchain::Error>;
-
+	/// Adds an extrinsic which pushes DigestItem to header's log
 	fn push_deposit_log_digest_item(&mut self, log: sp_runtime::generic::DigestItem)  -> Result<(), sp_blockchain::Error>;
 }
 

@@ -85,7 +85,7 @@ pub mod pallet {
 			T::WeightInfo::on_finalize()
 		}
 
-		fn on_finalize(n: T::BlockNumber) {
+		fn on_finalize(_n: T::BlockNumber) {
 		}
 	}
 
@@ -116,7 +116,7 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(100)]
-		pub fn transfer(origin: OriginFor<T>, transfer: Transfer, signature: AccountSignature, exhaust_resources_when_not_first: bool) -> DispatchResult {
+		pub fn transfer(origin: OriginFor<T>, transfer: Transfer, _signature: AccountSignature, _exhaust_resources_when_not_first: bool) -> DispatchResult {
 			log::trace!("xxxxxxx -> transfer");
 			frame_system::ensure_signed(origin)?;
 
@@ -153,7 +153,7 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(100)]
-		pub fn storage_change_unsigned(origin: OriginFor<T>, key: Vec<u8>, value: Option<Vec<u8>>) -> DispatchResult {
+		pub fn storage_change_unsigned(_origin: OriginFor<T>, key: Vec<u8>, value: Option<Vec<u8>>) -> DispatchResult {
 			match value {
 				Some(value) => storage::unhashed::put_raw(&key, &value),
 				None => storage::unhashed::kill(&key),
@@ -200,23 +200,10 @@ pub mod pallet {
 
 		#[pallet::call_index(8)]
 		#[pallet::weight(100)]
-		pub fn deposit_log_digest_item(origin: OriginFor<T>, log: sp_runtime::generic::DigestItem) -> DispatchResult {
+		pub fn deposit_log_digest_item(_origin: OriginFor<T>, log: sp_runtime::generic::DigestItem) -> DispatchResult {
 			<frame_system::Pallet<T>>::deposit_log(log);
 			Ok(())
 		}
-
-
-		// #[pallet::call_index(9)]
-		// #[pallet::weight(100)]
-		// pub fn deposit_log(origin: OriginFor<T>, log: sp_finality_grandpa::ConsensusLog<T::BlockNumber>) -> DispatchResult {
-		// 	<frame_system::Pallet<T>>::deposit_log(
-		// 	sp_runtime::generic::DigestItem::Consensus(
-		// 		sp_finality_grandpa::GRANDPA_ENGINE_ID, log.encode()
-		// 	));
-        //
-		// 	// <frame_system::Pallet<T>>::deposit_log(log);
-		// 	Ok(())
-		// }
 	}
 
 
@@ -262,10 +249,10 @@ pub fn take_block_number() -> Option<BlockNumber> {
 
 
 use codec::Encode;
-use sp_runtime::{
+use sp_runtime::
 	transaction_validity::{
-		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction }
-};
+		InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction };
+
 pub fn validate_runtime_call<T: pallet::Config>(
 	call: &pallet::Call<T>,
 ) -> TransactionValidity {
@@ -281,6 +268,7 @@ pub fn validate_runtime_call<T: pallet::Config>(
 
 			// check signature
 			if !sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
+				log::trace!("xxxxxxx -> BadProof");
 				return InvalidTransaction::BadProof.into()
 			}
 

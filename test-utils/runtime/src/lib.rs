@@ -23,12 +23,12 @@
 pub mod genesismap;
 pub mod system2;
 
-use codec::{Decode, Encode, Error, Input};
+use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::prelude::*;
 
 use sp_application_crypto::{ecdsa, ed25519, sr25519, RuntimeAppPublic};
-use sp_core::{offchain::KeyTypeId, OpaqueMetadata, RuntimeDebug};
+use sp_core::{OpaqueMetadata, RuntimeDebug};
 use sp_trie::{
 	trie_types::{TrieDBBuilder, TrieDBMutBuilderV1},
 	PrefixedMemoryDB, StorageProof,
@@ -38,23 +38,20 @@ use trie_db::{Trie, TrieMut};
 use frame_support::{
 	construct_runtime,
 	parameter_types,
-	traits::{ConstU32, ConstU64, KeyOwnerProofSystem},
-	weights::{RuntimeDbWeight, Weight},
+	traits::{ConstU32, ConstU64},
 };
-use frame_system::limits::{BlockLength, BlockWeights};
 use sp_api::{decl_runtime_apis, impl_runtime_apis};
 pub use sp_core::hash::H256;
 use sp_inherents::{CheckInherentsResult, InherentData};
 use sp_runtime::traits::NumberFor;
 use sp_runtime::{
-	create_runtime_str, impl_opaque_keys,
+	ApplyExtrinsicResult, create_runtime_str, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Verify,
+		BlakeTwo256, Block as BlockT, DispatchInfoOf, Verify,
 	},
 	transaction_validity::{
 		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction
 	},
-	ApplyExtrinsicResult, Perbill,
 };
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
@@ -162,7 +159,7 @@ impl Transfer {
 
 	//todo: naming + extra trait for UncheckedExtrinsic ?
 	pub fn check_transfer(uxt: &UncheckedExtrinsic) -> Result<Self, TransactionValidityError> {
-		if let RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{ref transfer,ref signature, ref exhaust_resources_when_not_first}) = uxt.function  {
+		if let RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{ref transfer,ref signature, ..}) = uxt.function  {
 			if sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
 				Ok(Transfer {
 					from:transfer.from,
@@ -186,9 +183,6 @@ pub type Signature = sr25519::Signature;
 
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = Dummy;
-// pub type SignedExtra = (
-// 	frame_system::CheckNonce<Runtime>,
-// );
 /// The payload being signed in transactions.
 pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Unchecked extrinsic type as expected by this runtime.
@@ -215,34 +209,6 @@ pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 /// A test block's header.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hashing>;
 
-
-/// A type that can not be decoded.
-#[derive(PartialEq, TypeInfo)]
-pub struct DecodeFails<B: BlockT> {
-	_phantom: PhantomData<B>,
-}
-
-impl<B: BlockT> Encode for DecodeFails<B> {
-	fn encode(&self) -> Vec<u8> {
-		Vec::new()
-	}
-}
-
-impl<B: BlockT> codec::EncodeLike for DecodeFails<B> {}
-
-impl<B: BlockT> Default for DecodeFails<B> {
-	/// Create a default instance.
-	fn default() -> DecodeFails<B> {
-		DecodeFails { _phantom: Default::default() }
-	}
-}
-
-impl<B: BlockT> Decode for DecodeFails<B> {
-	fn decode<I: Input>(_: &mut I) -> Result<Self, Error> {
-		Err("DecodeFails always fails".into())
-	}
-}
-
 decl_runtime_apis! {
 	#[api_version(2)]
 	pub trait TestAPI {
@@ -253,17 +219,11 @@ decl_runtime_apis! {
 		/// A benchmark function that adds one to each value in the given vector and returns the
 		/// result.
 		fn benchmark_vector_add_one(vec: &Vec<u64>) -> Vec<u64>;
-		/// A function that always fails to convert a parameter between runtime and node.
-		fn fail_convert_parameter(param: DecodeFails<Block>);
-		/// A function that always fails to convert its return value between runtime and node.
-		fn fail_convert_return_value() -> DecodeFails<Block>;
 		/// A function for that the signature changed in version `2`.
 		#[changed_in(2)]
 		fn function_signature_changed() -> Vec<u64>;
 		/// The new signature.
 		fn function_signature_changed() -> u64;
-		fn fail_on_native() -> u64;
-		fn fail_on_wasm() -> u64;
 		/// trie no_std testing
 		fn use_trie() -> u64;
 		fn benchmark_indirect_call() -> u64;
@@ -344,7 +304,7 @@ impl sp_runtime::traits::SignedExtension for Dummy {
 
 	fn validate(
 		&self,
-		who: &Self::AccountId,
+		_who: &Self::AccountId,
 		call: &Self::Call,
 		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,
@@ -367,26 +327,6 @@ impl sp_runtime::traits::SignedExtension for Dummy {
 	) -> Result<Self::Pre, TransactionValidityError> {
 		self.validate(who, call, info, len).map(|_| Dummy{})
 	}
-
-	// fn validate_unsigned(
-	// 	_call: &Self::Call,
-	// 	_info: &DispatchInfoOf<Self::Call>,
-	// 	_len: usize,
-	// ) -> TransactionValidity {
-	// 	log::trace!("xxx -> validate_unsigned");
-	// 	//todo: this is actaully not needed here (syste2::pallet::validate_transaction)
-	// 	Ok(ValidTransaction {
-	// 		priority: 1000,
-	// 		requires: vec![],
-	// 		provides: vec![vec![0u8]],
-	// 		longevity: 1,
-	// 		propagate: false,
-	// 	})
-	// 	// Ok(ValidTransaction {
-	// 	// 	provides: vec![vec![0u8]],
-	// 	// 	..Default::default()
-	// 	// })
-	// }
 }
 
 construct_runtime!(
@@ -396,240 +336,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system,
-		// Utility: pallet_utility,
 		Babe: pallet_babe,
-		// Timestamp: pallet_timestamp,
 		SubstrateTest: system2::pallet,
-		// // Authorship must be before session in order to note author in the correct session and era
-		// // for im-online and staking.
-		// Authorship: pallet_authorship,
-		// Indices: pallet_indices,
-		// Balances: pallet_balances,
-		// TransactionPayment: pallet_transaction_payment,
-		// AssetTxPayment: pallet_asset_tx_payment,
-		// ElectionProviderMultiPhase: pallet_election_provider_multi_phase,
-		// Staking: pallet_staking,
-		// Session: pallet_session,
-		// Democracy: pallet_democracy,
-		// Council: pallet_collective::<Instance1>,
-		// TechnicalCommittee: pallet_collective::<Instance2>,
-		// Elections: pallet_elections_phragmen,
-		// TechnicalMembership: pallet_membership::<Instance1>,
-		// Grandpa: pallet_grandpa,
-		// Treasury: pallet_treasury,
-		// Contracts: pallet_contracts,
-		// Sudo: pallet_sudo,
-		// ImOnline: pallet_im_online,
-		// AuthorityDiscovery: pallet_authority_discovery,
-		// Offences: pallet_offences,
-		// Historical: pallet_session_historical::{Pallet},
-		// RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
-		// Identity: pallet_identity,
-		// Society: pallet_society,
-		// Recovery: pallet_recovery,
-		// Vesting: pallet_vesting,
-		// Scheduler: pallet_scheduler,
-		// Glutton: pallet_glutton,
-		// Preimage: pallet_preimage,
-		// Proxy: pallet_proxy,
-		// Multisig: pallet_multisig,
-		// Bounties: pallet_bounties,
-		// Tips: pallet_tips,
-		// Assets: pallet_assets,
-		// Mmr: pallet_mmr,
-		// Lottery: pallet_lottery,
-		// Nis: pallet_nis,
-		// Uniques: pallet_uniques,
-		// Nfts: pallet_nfts,
-		// TransactionStorage: pallet_transaction_storage,
-		// VoterList: pallet_bags_list::<Instance1>,
-		// StateTrieMigration: pallet_state_trie_migration,
-		// ChildBounties: pallet_child_bounties,
-		// Referenda: pallet_referenda,
-		// Remark: pallet_remark,
-		// RootTesting: pallet_root_testing,
-		// ConvictionVoting: pallet_conviction_voting,
-		// Whitelist: pallet_whitelist,
-		// AllianceMotion: pallet_collective::<Instance3>,
-		// Alliance: pallet_alliance,
-		// NominationPools: pallet_nomination_pools,
-		// RankedPolls: pallet_referenda::<Instance2>,
-		// RankedCollective: pallet_ranked_collective,
-		// FastUnstake: pallet_fast_unstake,
-		// MessageQueue: pallet_message_queue,
-		// Pov: frame_benchmarking_pallet_pov,
 	}
 );
 
-// #[derive(Clone, Eq, PartialEq, TypeInfo)]
-// pub struct Runtime;
-//
-// impl GetNodeBlockType for Runtime {
-// 	type NodeBlock = Block;
-// }
-//
-// impl GetRuntimeBlockType for Runtime {
-// 	type RuntimeBlock = Block;
-// }
-//
-// #[derive(Clone, RuntimeDebug, Encode, Decode, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
-// pub struct RuntimeOrigin;
-//
-// impl From<RawOrigin<<Runtime as frame_system::Config>::AccountId>> for RuntimeOrigin {
-// 	fn from(_: RawOrigin<<Runtime as frame_system::Config>::AccountId>) -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// }
-//
-// impl CallerTrait<<Runtime as frame_system::Config>::AccountId> for RuntimeOrigin {
-// 	fn into_system(self) -> Option<RawOrigin<<Runtime as frame_system::Config>::AccountId>> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn as_system_ref(&self) -> Option<&RawOrigin<<Runtime as frame_system::Config>::AccountId>> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// }
-//
-// impl From<RuntimeOrigin> for Result<frame_system::Origin<Runtime>, RuntimeOrigin> {
-// 	fn from(_origin: RuntimeOrigin) -> Result<frame_system::Origin<Runtime>, RuntimeOrigin> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// }
-//
-// impl frame_support::traits::OriginTrait for RuntimeOrigin {
-// 	type Call = <Runtime as frame_system::Config>::RuntimeCall;
-// 	type PalletsOrigin = RuntimeOrigin;
-// 	type AccountId = <Runtime as frame_system::Config>::AccountId;
-//
-// 	fn add_filter(&mut self, _filter: impl Fn(&Self::Call) -> bool + 'static) {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn reset_filter(&mut self) {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn set_caller_from(&mut self, _other: impl Into<Self>) {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn filter_call(&self, _call: &Self::Call) -> bool {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn caller(&self) -> &Self::PalletsOrigin {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn into_caller(self) -> Self::PalletsOrigin {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn try_with_caller<R>(
-// 		self,
-// 		_f: impl FnOnce(Self::PalletsOrigin) -> Result<R, Self::PalletsOrigin>,
-// 	) -> Result<R, Self> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-//
-// 	fn none() -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// 	fn root() -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// 	fn signed(_by: Self::AccountId) -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// 	fn as_signed(self) -> Option<Self::AccountId> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// 	fn as_system_ref(&self) -> Option<&RawOrigin<Self::AccountId>> {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// }
-//
-// #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-// pub struct RuntimeEvent;
-//
-// impl From<frame_system::Event<Runtime>> for RuntimeEvent {
-// 	fn from(_evt: frame_system::Event<Runtime>) -> Self {
-// 		unimplemented!("Not required in tests!")
-// 	}
-// }
-//
-// impl frame_support::traits::PalletInfo for Runtime {
-// 	fn index<P: 'static>() -> Option<usize> {
-// 		let type_id = sp_std::any::TypeId::of::<P>();
-// 		if type_id == sp_std::any::TypeId::of::<system::Pallet<Runtime>>() {
-// 			return Some(0)
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_timestamp::Pallet<Runtime>>() {
-// 			return Some(1)
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_babe::Pallet<Runtime>>() {
-// 			return Some(2)
-// 		}
-//
-// 		None
-// 	}
-// 	fn name<P: 'static>() -> Option<&'static str> {
-// 		let type_id = sp_std::any::TypeId::of::<P>();
-// 		if type_id == sp_std::any::TypeId::of::<system::Pallet<Runtime>>() {
-// 			return Some("System")
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_timestamp::Pallet<Runtime>>() {
-// 			return Some("Timestamp")
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_babe::Pallet<Runtime>>() {
-// 			return Some("Babe")
-// 		}
-//
-// 		None
-// 	}
-// 	fn module_name<P: 'static>() -> Option<&'static str> {
-// 		let type_id = sp_std::any::TypeId::of::<P>();
-// 		if type_id == sp_std::any::TypeId::of::<system::Pallet<Runtime>>() {
-// 			return Some("system")
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_timestamp::Pallet<Runtime>>() {
-// 			return Some("pallet_timestamp")
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_babe::Pallet<Runtime>>() {
-// 			return Some("pallet_babe")
-// 		}
-//
-// 		None
-// 	}
-// 	fn crate_version<P: 'static>() -> Option<CrateVersion> {
-// 		use frame_support::traits::PalletInfoAccess as _;
-// 		let type_id = sp_std::any::TypeId::of::<P>();
-// 		if type_id == sp_std::any::TypeId::of::<system::Pallet<Runtime>>() {
-// 			return Some(system::Pallet::<Runtime>::crate_version())
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_timestamp::Pallet<Runtime>>() {
-// 			return Some(pallet_timestamp::Pallet::<Runtime>::crate_version())
-// 		}
-// 		if type_id == sp_std::any::TypeId::of::<pallet_babe::Pallet<Runtime>>() {
-// 			return Some(pallet_babe::Pallet::<Runtime>::crate_version())
-// 		}
-//
-// 		None
-// 	}
-// }
-
-// parameter_types! {
-// 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
-// 		read: 100,
-// 		write: 1000,
-// 	};
-// 	// pub RuntimeBlockLength: BlockLength =
-// 	// 	BlockLength::max(4 * 1024 * 1024);
-// 	// pub RuntimeBlockWeights: BlockWeights =
-// 	// 	BlockWeights::with_sensible_defaults(Weight::from_ref_time(4 * 1024 * 1024), Perbill::from_percent(75));
-// }
-//
 impl frame_system::pallet::Config for Runtime {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -664,7 +375,6 @@ impl pallet_timestamp::Config for Runtime {
 	type Moment = u64;
 	type OnTimestampSet = Babe;
 	type MinimumPeriod = ConstU64<5>;
-	// type WeightInfo = ();
 	type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 
@@ -675,26 +385,11 @@ parameter_types! {
 impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ConstU64<10_000>;
-	// there is no actual runtime in this test-runtime, so testing crates
-	// are manually adding the digests. normally in this situation you'd use
-	// pallet_babe::SameAuthoritiesForever.
 	type EpochChangeTrigger = pallet_babe::SameAuthoritiesForever;
 	type DisabledValidators = ();
-
-	// type KeyOwnerProofSystem = ();
-
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
-	// 	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, AuthorityId)>>::Proof;
-
-	// type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-	// 	KeyTypeId,
-	// 	AuthorityId,
-	// )>>::IdentificationTuple;
-
-	// type HandleEquivocation = ();
-	type WeightInfo = ();
-
+	type WeightInfo = (); //todo
 	type MaxAuthorities = ConstU32<10>;
 }
 
@@ -741,49 +436,10 @@ impl_opaque_keys! {
 	}
 }
 
-// pub type FullClient =
-// 	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
-//
-//
-// pub fn fetch_nonce(client: &FullClient, account: sp_core::sr25519::Pair) -> u64 {
-// 	let best_hash = client.chain_info().best_hash;
-// 	client
-// 		.runtime_api()
-// 		.account_nonce(best_hash, account.public().into())
-// 		.expect("Fetching account nonce works; qed")
-// }
-
 #[cfg(feature = "std")]
 pub fn create_extrinsic(
-	// sender: sp_core::sr25519::Pair,
 	function: impl Into<RuntimeCall>,
-	// nonce: Option<Index>,
 ) -> UncheckedExtrinsic {
-	// use sp_core::crypto::Pair;
-	// let function = function.into();
-	// let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
-	// let best_hash = client.chain_info().best_hash;
-	//todo
-	// let nonce = nonce.unwrap_or_else(|| fetch_nonce(client, sender.clone()));
-	// let nonce = nonce.unwrap_or_else(|| 0u32.into());
-    //
-	// let extra: SignedExtra = (
-	// 	frame_system::CheckNonce::<Runtime>::from(nonce),
-	// );
-    //
-	// let raw_payload = SignedPayload::from_raw(
-	// 	function.clone(),
-	// 	extra.clone(),
-	// 	(
-	// 		(),
-	// 	),
-	// );
-	// let signature = raw_payload.using_encoded(|e| sender.sign(e));
-
-	// UncheckedExtrinsic::new_unsigned(
-	// 	function.into(),
-	// );
-
 	let function = function.into();
 	let sender = sp_keyring::AccountKeyring::Alice;
 	let extra = SignedExtra{};
@@ -827,7 +483,7 @@ impl_runtime_apis! {
 			unimplemented!()
 		}
 
-		fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+		fn metadata_at_version(_version: u32) -> Option<OpaqueMetadata> {
 			unimplemented!()
 		}
 		fn metadata_versions() -> sp_std::vec::Vec<u32> {
@@ -902,20 +558,7 @@ impl_runtime_apis! {
 			vec
 		}
 
-		fn fail_convert_parameter(_: DecodeFails<Block>) {}
-
-		fn fail_convert_return_value() -> DecodeFails<Block> {
-			DecodeFails::default()
-		}
-
 		fn function_signature_changed() -> u64 {
-			1
-		}
-
-		fn fail_on_native() -> u64 {
-			panic!("Failing because we are on native")
-		}
-		fn fail_on_wasm() -> u64 {
 			1
 		}
 
@@ -1203,7 +846,7 @@ mod tests {
 			.set_heap_pages(8)
 			.build();
 		let best_hash = client.chain_info().best_hash;
-		client.runtime_api().do_trace_log(best_hash);
+		let _ = client.runtime_api().do_trace_log(best_hash);
 
 		// Try to allocate 1024k of memory on heap. This is going to fail since it is twice larger
 		// than the heap.

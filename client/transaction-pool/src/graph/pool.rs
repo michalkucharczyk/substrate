@@ -17,8 +17,6 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use codec::{Encode};
-
 use crate::LOG_TARGET;
 use futures::{channel::mpsc::Receiver, Future};
 use sc_transaction_pool_api::error;
@@ -680,8 +678,6 @@ mod tests {
 				amount: 5,
 				nonce: 1,
 			});
-
-		log::trace!("xxx -> xt {:?} {:?} {:?}", xt, xt.encode(), xt.encode().len());
 
 		let hash1 = block_on(pool.submit_one(
 			&BlockId::Number(0),
