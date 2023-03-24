@@ -325,9 +325,11 @@ mod tests {
 		let backend = builder.backend();
 		let client = builder.build();
 
+		let genesis_hash = client.info().best_hash;
+
 		let block = BlockBuilder::new(
 			&client,
-			client.info().best_hash,
+			genesis_hash,
 			client.info().best_number,
 			RecordProof::Yes,
 			Default::default(),
@@ -338,13 +340,10 @@ mod tests {
 		.unwrap();
 
 		let proof = block.proof.expect("Proof is build on request");
-
-		log::trace!("block: {:#?}", block.block.clone());
-		log::trace!("proof: {:?}", proof);
-		log::trace!("block.storage_changes.transaction_storage_root: {:?}", block.storage_changes.transaction_storage_root);
+		let genesis_state_root = client.header(genesis_hash).unwrap().unwrap().state_root;
 
 		let backend = sp_state_machine::create_proof_check_backend::<Blake2Hasher>(
-			block.storage_changes.transaction_storage_root,
+			genesis_state_root,
 			proof,
 		)
 		.unwrap();
