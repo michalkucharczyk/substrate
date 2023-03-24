@@ -47,10 +47,6 @@ use sp_runtime::{
 	traits::{Block as BlockT, Header as HeaderT},
 	Justifications,
 };
-use std::{
-	collections::{HashMap, HashSet},
-	pin::Pin,
-};
 use std::{collections::HashSet, pin::Pin};
 use substrate_test_runtime_client::{BlockBuilderExt, runtime::BlockNumber};
 use tokio::runtime::Handle;
@@ -408,7 +404,7 @@ fn add_scheduled_change2(builder: &mut impl BlockBuilderExt, change: ScheduledCh
 	let _ = builder.push_deposit_log_digest_item(
 		DigestItem::Consensus(
 			GRANDPA_ENGINE_ID,
-			sp_finality_grandpa::ConsensusLog::ScheduledChange(change).encode(),
+			sp_consensus_grandpa::ConsensusLog::ScheduledChange(change).encode(),
 		)
 	).unwrap();
 }
