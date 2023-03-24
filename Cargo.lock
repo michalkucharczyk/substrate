@@ -8273,6 +8273,7 @@ dependencies = [
  "sp-inherents",
  "sp-runtime",
  "sp-state-machine",
+ "sp-tracing",
  "substrate-test-runtime-client",
 ]
 
@@ -9286,6 +9287,7 @@ dependencies = [
  "sp-core",
  "sp-maybe-compressed-blob",
  "sp-runtime",
+ "sp-tracing",
  "sp-version",
  "substrate-test-runtime",
  "substrate-test-runtime-client",
@@ -10801,6 +10803,7 @@ dependencies = [
  "hash-db",
  "hashbrown 0.13.2",
  "lazy_static",
+ "log",
  "memory-db",
  "nohash-hasher",
  "parity-scale-codec",
@@ -11137,6 +11140,7 @@ dependencies = [
  "array-bytes",
  "async-trait",
  "futures",
+ "log",
  "parity-scale-codec",
  "sc-client-api",
  "sc-client-db",
@@ -11211,6 +11215,7 @@ version = "2.0.0"
 dependencies = [
  "frame-system",
  "futures",
+ "log",
  "parity-scale-codec",
  "sc-block-builder",
  "sc-chain-spec",
@@ -11219,6 +11224,7 @@ dependencies = [
  "sp-api",
  "sp-blockchain",
  "sp-consensus",
+ "sp-consensus-grandpa",
  "sp-core",
  "sp-keyring",
  "sp-runtime",
