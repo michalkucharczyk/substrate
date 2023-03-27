@@ -33,7 +33,7 @@ use sp_runtime::{
 		ValidTransaction,
 	},
 };
-use substrate_test_runtime::{AccountId, Block, create_extrinsic, H256, UncheckedExtrinsic, system2, Transfer };
+use substrate_test_runtime::{AccountId, Block, H256, Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder};
 
 #[derive(Clone, Debug, Default)]
 struct TestApi {
@@ -135,7 +135,7 @@ impl ChainApi for TestApi {
 fn uxt(transfer: Transfer) -> UncheckedExtrinsic {
 	let signature = Decode::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 		.expect("infinite input; no dead input space; qed");
-	create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: false } )
+	UncheckedExtrinsicBuilder::new(TransferCallBuilder::new(transfer).with_signature(signature).build()).build()
 }
 
 fn bench_configured(pool: Pool<TestApi>, number: u64) {

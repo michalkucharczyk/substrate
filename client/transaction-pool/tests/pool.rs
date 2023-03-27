@@ -39,7 +39,7 @@ use sp_runtime::{
 };
 use std::{collections::BTreeSet, pin::Pin, sync::Arc};
 use substrate_test_runtime_client::{
-	runtime::{Block, create_extrinsic, Hash, Header, Index, system2, UncheckedExtrinsic, Transfer},
+	runtime::{Block, Hash, Header, Index, Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder},
 	AccountKeyring::*,
 	ClientBlockImportExt,
 };
@@ -912,7 +912,7 @@ fn should_not_accept_old_signatures() {
 	let _bytes: sp_core::sr25519::Signature = transfer.using_encoded(|e| Alice.sign(e)).into();
 
 	// generated with schnorrkel 0.1.1 from `_bytes`
-	let old_singature = sp_core::sr25519::Signature::try_from(
+	let old_signature = sp_core::sr25519::Signature::try_from(
 		&array_bytes::hex2bytes(
 			"c427eb672e8c441c86d31f1a81b22b43102058e9ce237cabe9897ea5099ffd426\
 		cd1c6a1f4f2869c3df57901d36bedcb295657adb3a4355add86ed234eb83108",
@@ -921,11 +921,7 @@ fn should_not_accept_old_signatures() {
 	)
 	.expect("signature construction failed");
 
-	let xt = create_extrinsic(system2::pallet::Call::transfer {
-		transfer,
-		signature: old_singature,
-		exhaust_resources_when_not_first: false,
-	});
+	let xt = UncheckedExtrinsicBuilder::new(TransferCallBuilder::new(transfer).with_signature(old_signature).build()).build();
 
 	assert_matches::assert_matches!(
 		block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt.clone())),
@@ -981,7 +977,7 @@ fn import_notification_to_pool_maintain_works() {
 fn pruning_a_transaction_should_remove_it_from_best_transaction() {
 	let (pool, api, _guard) = maintained_pool();
 
-	let xt1 = create_extrinsic(system2::pallet::Call::include_data{data:Vec::new()});
+	let xt1 = UncheckedExtrinsicBuilder::new_include_data(Vec::new()).build();
 
 	block_on(pool.submit_one(&BlockId::number(0), SOURCE, xt1.clone())).expect("1. Imported");
 	assert_eq!(pool.status().ready, 1);

@@ -31,7 +31,7 @@ use sp_runtime::{
 	},
 };
 use std::{collections::HashSet, sync::Arc};
-use substrate_test_runtime::{Block, create_extrinsic, UncheckedExtrinsic, Hashing, RuntimeCall, system2, Transfer, H256};
+use substrate_test_runtime::{Block, Hashing, RuntimeCall, system2::pallet::Call as PalletCall, H256, Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder};
 
 pub(crate) const INVALID_NONCE: u64 = 254;
 
@@ -70,7 +70,7 @@ impl ChainApi for TestApi {
 		let block_number = self.block_id_to_number(at).unwrap().unwrap();
 
 		let res = match uxt.function {
-		    RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{transfer, ..}) => {
+		    RuntimeCall::SubstrateTest(PalletCall::transfer{transfer, ..}) => {
 				let nonce = transfer.nonce;
 
 				// This is used to control the test flow.
@@ -115,14 +115,14 @@ impl ChainApi for TestApi {
 					Ok(transaction)
 				}
 			},
-			RuntimeCall::SubstrateTest(system2::pallet::Call::include_data{..}) => Ok(ValidTransaction {
+			RuntimeCall::SubstrateTest(PalletCall::include_data{..}) => Ok(ValidTransaction {
 				priority: 9001,
 				requires: vec![],
 				provides: vec![vec![42]],
 				longevity: 9001,
 				propagate: false,
 			}),
-			RuntimeCall::SubstrateTest(system2::pallet::Call::store{..}) => Ok(ValidTransaction {
+			RuntimeCall::SubstrateTest(PalletCall::store{..}) => Ok(ValidTransaction {
 				priority: 9001,
 				requires: vec![],
 				provides: vec![vec![43]],
@@ -186,7 +186,7 @@ impl ChainApi for TestApi {
 
 pub(crate) fn uxt(transfer: Transfer) -> UncheckedExtrinsic {
 	let signature = TryFrom::try_from(&[0; 64][..]).unwrap();
-	create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: false } )
+	UncheckedExtrinsicBuilder::new(TransferCallBuilder::new(transfer).with_signature(signature).build()).build()
 }
 
 pub(crate) fn pool() -> Pool<TestApi> {

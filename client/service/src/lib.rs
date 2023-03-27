@@ -588,7 +588,7 @@ mod tests {
 	use sp_runtime::traits::BlindCheckable;
 	use substrate_test_runtime_client::{
 		prelude::*,
-		runtime::{create_extrinsic, system2, Transfer},
+		runtime::{Transfer, UncheckedExtrinsicBuilder},
 	};
 
 	#[test]
@@ -613,7 +613,7 @@ mod tests {
 		block_on(pool.submit_one(
 			&BlockId::hash(best.hash()),
 			source,
-			create_extrinsic(system2::pallet::Call::include_data{data:vec![1]}),
+			UncheckedExtrinsicBuilder::new_include_data(vec![1]).build(),
 		))
 		.unwrap();
 		assert_eq!(pool.status().ready, 2);

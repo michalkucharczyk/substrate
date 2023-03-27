@@ -297,7 +297,7 @@ mod tests {
 	};
 	use sp_consensus::BlockOrigin;
 	use sp_runtime::codec::Encode;
-	use substrate_test_runtime::{create_extrinsic, system2};
+	use substrate_test_runtime::UncheckedExtrinsicBuilder;
 	use substrate_test_runtime_client::{self, prelude::*, TestClientBuilder};
 
 	#[tokio::test]
@@ -472,7 +472,7 @@ mod tests {
 		let mut block_builder = client.new_block(Default::default()).unwrap();
 
 		// encoded extrsinic: [161, .. , 2, 6, 16, 19, 55, 19, 56]
-		let ext = create_extrinsic(system2::pallet::Call::store{data:vec![0x13, 0x37, 0x13, 0x38]});
+		let ext = UncheckedExtrinsicBuilder::new_store(vec![0x13, 0x37, 0x13, 0x38]).build();
 		let pattern_index = ext.encode().len() - 4;
 
 		block_builder.push(ext.clone()).unwrap();

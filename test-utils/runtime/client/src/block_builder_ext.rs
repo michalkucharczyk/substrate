@@ -74,8 +74,7 @@ where
 		key: Vec<u8>,
 		value: Option<Vec<u8>>,
 	) -> Result<(), sp_blockchain::Error> {
-		//todo
-		self.push( create_extrinsic( system2::pallet::Call::storage_change{ key, value } ))
+		self.push( UncheckedExtrinsicBuilder::new_storage_change(key, value).build() )
 	}
 
 	fn push_storage_change_unsigned(
@@ -83,15 +82,10 @@ where
 		key: Vec<u8>,
 		value: Option<Vec<u8>>,
 	) -> Result<(), sp_blockchain::Error> {
-		//todo
-		self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::storage_change{ key, value }.into() ))
+		self.push( UncheckedExtrinsicBuilder::new_storage_change_unsigned(key, value).build() )
 	}
 
-	// fn push_deposit_log(&mut self, log: sp_finality_grandpa::ConsensusLog<sp_runtime::traits::NumberFor<substrate_test_runtime::Block>>) -> Result<(), sp_blockchain::Error> {
-	// 	self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::deposit_log{ log }.into() ))
-	// }
-
 	fn push_deposit_log_digest_item(&mut self, log: sp_runtime::generic::DigestItem)  -> Result<(), sp_blockchain::Error> {
-		self.push( UncheckedExtrinsic::new_unsigned(system2::pallet::Call::deposit_log_digest_item{ log }.into() ))
+		self.push( UncheckedExtrinsicBuilder::new_deposit_log_digest_item(log).unsigned().build() )
 	}
 }

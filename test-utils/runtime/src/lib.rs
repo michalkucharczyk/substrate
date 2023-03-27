@@ -22,6 +22,7 @@
 #[cfg(feature = "std")]
 pub mod genesismap;
 pub mod system2;
+pub mod extrinsic;
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -50,7 +51,7 @@ use sp_runtime::{
 		BlakeTwo256, Block as BlockT, DispatchInfoOf, Verify,
 	},
 	transaction_validity::{
-		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction
+		TransactionSource, TransactionValidity, TransactionValidityError, ValidTransaction
 	},
 };
 #[cfg(any(feature = "std", test))]
@@ -61,6 +62,7 @@ use sp_version::RuntimeVersion;
 pub use sp_consensus_babe::{AllowedSlots, AuthorityId, Slot};
 
 pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
+pub use extrinsic::{Transfer, UncheckedExtrinsicBuilder, TransferCallBuilder};
 
 // Include the WASM binary
 #[cfg(feature = "std")]
@@ -111,71 +113,6 @@ fn version() -> RuntimeVersion {
 pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
-
-/// Calls in transactions.
-#[derive(Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct Transfer {
-	pub from: AccountId,
-	pub to: AccountId,
-	pub amount: u64,
-	pub nonce: u64,
-}
-
-// todo
-impl Transfer {
-	/// Convert into a signed extrinsic.
-	#[cfg(feature = "std")]
-	pub fn into_unchecked_extrinsic(self) -> UncheckedExtrinsic {
-		let signature = sp_keyring::AccountKeyring::from_public(&self.from)
-			.expect("Creates keyring from public key.")
-			.sign(&self.encode());
-		create_extrinsic(system2::pallet::Call::transfer { transfer: self, signature, exhaust_resources_when_not_first: false } )
-	}
-
-	pub fn try_from_unchecked_extrinsic(uxt: &UncheckedExtrinsic) -> Option<Self> {
-		// if let system2::pallet::Call::transfer{t} = uxt.function {
-		// 	Some(t)
-		// }
-		if let RuntimeCall::SubstrateTest(ref x) = uxt.function {
-			if let system2::pallet::Call::transfer{transfer,..} = x {
-			return Some(Transfer{from:transfer.from, to:transfer.to, amount: transfer.amount, nonce:transfer.nonce})
-			}
-			return None
-		}
-		None
-	}
-
-	/// Convert into a signed extrinsic, which will only end up included in the block
-	/// if it's the first transaction. Otherwise it will cause `ResourceExhaustion` error
-	/// which should be considered as block being full.
-	#[cfg(feature = "std")]
-	pub fn into_resources_exhausting_unchecked_extrinsic(self) -> UncheckedExtrinsic {
-		//todo this fails...
-		let signature = sp_keyring::AccountKeyring::from_public(&self.from)
-			.expect("Creates keyring from public key.")
-			.sign(&self.encode());
-		create_extrinsic(system2::pallet::Call::transfer { transfer: self, signature, exhaust_resources_when_not_first: true } )
-	}
-
-	//todo: naming + extra trait for UncheckedExtrinsic ?
-	pub fn check_transfer(uxt: &UncheckedExtrinsic) -> Result<Self, TransactionValidityError> {
-		if let RuntimeCall::SubstrateTest(system2::pallet::Call::transfer{ref transfer,ref signature, ..}) = uxt.function  {
-			if sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
-				Ok(Transfer {
-					from:transfer.from,
-					to:transfer.to,
-					amount:transfer.amount,
-					nonce:transfer.nonce,
-				})
-			} else {
-				Err(InvalidTransaction::BadProof.into())
-			}
-		} else {
-			Err(InvalidTransaction::Call.into())
-		}
-	}
-}
-
 
 /// The address format for describing accounts.
 pub type Address = sp_core::sr25519::Public;
@@ -277,7 +214,6 @@ impl sp_runtime::traits::Printable for Dummy {
 	}
 }
 
-
 impl sp_runtime::traits::Dispatchable for Dummy {
 	type RuntimeOrigin = Dummy;
 	type Config = Dummy;
@@ -291,13 +227,13 @@ impl sp_runtime::traits::Dispatchable for Dummy {
 	}
 }
 
-
 impl sp_runtime::traits::SignedExtension for Dummy {
 	type AccountId = AccountId;
 	type Call = RuntimeCall;
 	type AdditionalSigned = ();
 	type Pre = Dummy;
-	const IDENTIFIER: &'static str = "UnitSignedExtension";
+	const IDENTIFIER: &'static str = "DummySignedExtension";
+
 	fn additional_signed(&self) -> sp_std::result::Result<Self::AdditionalSigned, TransactionValidityError> {
 		Ok(())
 	}
@@ -318,6 +254,7 @@ impl sp_runtime::traits::SignedExtension for Dummy {
 			..Default::default()
 		})
 	}
+
 	fn pre_dispatch(
 		self,
 		who: &Self::AccountId,
@@ -435,29 +372,6 @@ impl_opaque_keys! {
 		pub ecdsa: ecdsa::AppPublic,
 	}
 }
-
-#[cfg(feature = "std")]
-pub fn create_extrinsic(
-	function: impl Into<RuntimeCall>,
-) -> UncheckedExtrinsic {
-	let function = function.into();
-	let sender = sp_keyring::AccountKeyring::Alice;
-	let extra = SignedExtra{};
-	let raw_payload = SignedPayload::from_raw(
-		function.clone(),
-		extra,
-		()
-	);
-	let signature = raw_payload.using_encoded(|e| sender.sign(e));
-
-	UncheckedExtrinsic::new_signed(
-		function,
-		sender.public(),
-		signature,
-		extra,
-	)
-}
-
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -679,7 +593,6 @@ impl_runtime_apis! {
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
-			// let ext = create_extrinsic();
 			let ext = UncheckedExtrinsic::new_unsigned(
 				system2::pallet::Call::include_data{data:header.number.encode()}.into(),
 			);

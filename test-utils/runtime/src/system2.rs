@@ -1,6 +1,6 @@
 
 use crate::{
-	AccountId, AccountSignature, AuthorityId, BlockNumber, Digest, Runtime, Transfer,
+	AccountId, AccountSignature, AuthorityId, BlockNumber, Digest, Runtime, extrinsic::Transfer,
 	H256 as Hash,
 };
 use codec::KeyedVec;
@@ -91,20 +91,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// pub enum ExtrinsicXxx {
-		// 	AuthoritiesChange(Vec<AuthorityId>),
-		// 	Transfer {
-		// 		transfer: Transfer,
-		// 		signature: AccountSignature,
-		// 		exhaust_resources_when_not_first: bool,
-		// 	},
-		// 	IncludeData(Vec<u8>),
-		// 	StorageChange(Vec<u8>, Option<Vec<u8>>),
-		// 	OffchainIndexSet(Vec<u8>, Vec<u8>),
-		// 	OffchainIndexClear(Vec<u8>),
-		// 	Store(Vec<u8>),
-		// }
-
 		#[pallet::call_index(0)]
 		#[pallet::weight(100)]
 		pub fn authorities_change(origin: OriginFor<T>, new_authorities: Vec<AuthorityId>) -> DispatchResult {
@@ -239,10 +225,12 @@ pub fn authorities() -> Vec<AuthorityId> {
 	<Authorities<Runtime>>::get()
 }
 
+//todo: can be removed?
 pub fn get_block_number() -> Option<BlockNumber> {
 	<Number<Runtime>>::get()
 }
 
+//todo: can be removed?
 pub fn take_block_number() -> Option<BlockNumber> {
 	<Number<Runtime>>::take()
 }

@@ -559,7 +559,7 @@ mod tests {
 	use sp_runtime::{generic::BlockId, traits::NumberFor};
 	use substrate_test_runtime_client::{
 		prelude::*,
-		runtime::{create_extrinsic, UncheckedExtrinsic, system2, Transfer},
+		runtime::{Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder},
 		TestClientBuilder, TestClientBuilderExt,
 	};
 
@@ -583,9 +583,8 @@ mod tests {
 			nonce: 0,
 			from: pair.public(),
 			to: AccountKeyring::Bob.into(),
-		};//.into_resources_exhausting_unchecked_extrinsic()
-		let signature = pair.sign(&transfer.encode()).into();
-		create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: true } )
+		};
+		UncheckedExtrinsicBuilder::new(TransferCallBuilder::new(transfer).signer(pair).exhaust_resources().build()).build()
 	}
 
 	fn chain_event<B: BlockT>(header: B::Header) -> ChainEvent<B>
@@ -869,7 +868,7 @@ mod tests {
 			}
 			.into_unchecked_extrinsic(),
 		)
-		.chain((0..extrinsics_num - 1).map(|v| create_extrinsic( system2::pallet::Call::include_data{data:vec![v as u8; 10]})))
+		.chain((0..extrinsics_num - 1).map(|v| UncheckedExtrinsicBuilder::new_include_data(vec![v as u8; 10]).build()))
 		.collect::<Vec<_>>();
 
 		let block_limit = genesis_header.encoded_size() +

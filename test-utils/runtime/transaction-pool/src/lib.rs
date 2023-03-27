@@ -35,7 +35,7 @@ use sp_runtime::{
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 use substrate_test_runtime_client::{
-	runtime::{AccountId, Block, BlockNumber, create_extrinsic, system2, Hash, Header, Index, Transfer, UncheckedExtrinsic},
+	runtime::{AccountId, Block, BlockNumber, Hash, Header, Index, Transfer, UncheckedExtrinsic, UncheckedExtrinsicBuilder},
 	AccountKeyring::{self, *},
 };
 
@@ -377,8 +377,5 @@ impl sp_blockchain::HeaderMetadata<Block> for TestApi {
 pub fn uxt(who: AccountKeyring, nonce: Index) -> UncheckedExtrinsic {
 	let dummy = codec::Decode::decode(&mut TrailingZeroInput::zeroes()).unwrap();
 	let transfer = Transfer { from: who.into(), to: dummy, nonce, amount: 1 };
-	let signature = transfer.using_encoded(|e| who.sign(e));
-	//todo: into_unchecked_extrinsic ?
-	// Transfer { transfer, signature, exhaust_resources_when_not_first: false }.into_unchecked_extrinsic()
-	create_extrinsic(system2::pallet::Call::transfer { transfer, signature, exhaust_resources_when_not_first: false })
+	UncheckedExtrinsicBuilder::new_transfer(transfer).build()
 }
