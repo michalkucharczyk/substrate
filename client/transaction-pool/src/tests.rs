@@ -31,7 +31,7 @@ use sp_runtime::{
 	},
 };
 use std::{collections::HashSet, sync::Arc};
-use substrate_test_runtime::{Block, Hashing, RuntimeCall, system2::pallet::Call as PalletCall, H256, Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder};
+use substrate_test_runtime::{Block, Hashing, RuntimeCall, substrate_test_pallet::pallet::Call as PalletCall, H256, Transfer, TransferCallBuilder, UncheckedExtrinsic, UncheckedExtrinsicBuilder};
 
 pub(crate) const INVALID_NONCE: u64 = 254;
 

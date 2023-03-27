@@ -21,7 +21,7 @@
 
 #[cfg(feature = "std")]
 pub mod genesismap;
-pub mod system2;
+pub mod substrate_test_pallet;
 pub mod extrinsic;
 
 use codec::{Decode, Encode};
@@ -246,7 +246,7 @@ impl sp_runtime::traits::SignedExtension for Dummy {
 	) -> TransactionValidity {
 		log::trace!("xxx -> validate");
 		if let RuntimeCall::SubstrateTest(ref substrate_test_call) = call {
-			return system2::validate_runtime_call(substrate_test_call);
+			return substrate_test_pallet::validate_runtime_call(substrate_test_call);
 		}
 		Ok(ValidTransaction {
 			provides: vec![vec![0u8]],
@@ -273,7 +273,7 @@ construct_runtime!(
 	{
 		System: frame_system,
 		Babe: pallet_babe,
-		SubstrateTest: system2::pallet,
+		SubstrateTest: substrate_test_pallet::pallet,
 	}
 );
 
@@ -304,7 +304,7 @@ impl frame_system::pallet::Config for Runtime {
 	type MaxConsumers = ConstU32<16>;
 }
 
-impl system2::Config for Runtime {}
+impl substrate_test_pallet::Config for Runtime {}
 
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
@@ -412,7 +412,7 @@ impl_runtime_apis! {
 		) -> TransactionValidity {
 			//todo:
 			log::trace!("xxx -> validate_transaction {:?}", utx);
-			if let RuntimeCall::SubstrateTest(system2::pallet::Call::include_data{data}) = utx.function {
+			if let RuntimeCall::SubstrateTest(substrate_test_pallet::pallet::Call::include_data{data}) = utx.function {
 				return Ok(ValidTransaction {
 					priority: data.len() as u64,
 					requires: vec![],
@@ -456,7 +456,7 @@ impl_runtime_apis! {
 
 	impl self::TestAPI<Block> for Runtime {
 		fn balance_of(id: AccountId) -> u64 {
-			system2::balance_of(id)
+			substrate_test_pallet::balance_of(id)
 		}
 
 		fn benchmark_add_one(val: &u64) -> u64 {
@@ -491,7 +491,7 @@ impl_runtime_apis! {
 		}
 
 		fn get_block_number() -> u64 {
-			system2::get_block_number().expect("Block number is initialized")
+			substrate_test_pallet::get_block_number().expect("Block number is initialized")
 		}
 
 		fn test_ed25519_crypto() -> (ed25519::AppSignature, ed25519::AppPublic) {
@@ -535,7 +535,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			system2::authorities().into_iter().map(|a| {
+			substrate_test_pallet::authorities().into_iter().map(|a| {
 				let authority: sr25519::Public = a.into();
 				AuraId::from(authority)
 			}).collect()
@@ -548,7 +548,7 @@ impl_runtime_apis! {
 				slot_duration: 1000,
 				epoch_length: EpochDuration::get(),
 				c: (3, 10),
-				authorities: system2::authorities()
+				authorities: substrate_test_pallet::authorities()
 					.into_iter().map(|x|(x, 1)).collect(),
 					randomness: <pallet_babe::Pallet<Runtime>>::randomness(),
 					allowed_slots: AllowedSlots::PrimaryAndSecondaryPlainSlots,
@@ -587,7 +587,7 @@ impl_runtime_apis! {
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
 			let ext = UncheckedExtrinsic::new_unsigned(
-				system2::pallet::Call::include_data{data:header.number.encode()}.into(),
+				substrate_test_pallet::pallet::Call::include_data{data:header.number.encode()}.into(),
 			);
 			sp_io::offchain::submit_transaction(ext.encode()).unwrap();
 		}

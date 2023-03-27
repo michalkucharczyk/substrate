@@ -17,7 +17,7 @@
 
 //! Tool for creating the genesis block.
 
-use super::{system2, wasm_binary_unwrap, AccountId, AuthorityId, Runtime};
+use super::{substrate_test_pallet, wasm_binary_unwrap, AccountId, AuthorityId, Runtime};
 use codec::{Encode, Joiner, KeyedVec};
 use frame_support::traits::GenesisBuild;
 use sc_service::construct_genesis_block;
@@ -84,8 +84,8 @@ impl GenesisConfig {
 		let mut storage =
 			Storage { top: map, children_default: self.extra_storage.children_default.clone() };
 
-		<system2::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
-			&system2::GenesisConfig { authorities: self.authorities.clone() },
+		<substrate_test_pallet::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
+			&substrate_test_pallet::GenesisConfig { authorities: self.authorities.clone() },
 			&mut storage,
 		)
 		.expect("Adding `system::GensisConfig` to the genesis");
