@@ -19,31 +19,20 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use pallet_timestamp::{self as timestamp}; //todo?
-    use pallet_timestamp::WeightInfo;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + timestamp::Config {} //todo: timestamp::config needed?
+	pub trait Config: frame_system::Config  {} //todo: timestamp::config needed?
 
-	#[pallet::storage]
-	pub type ExtrinsicData<T> = StorageMap<_, Blake2_128Concat, u32, Vec<u8>, ValueQuery>;
-
-	// The current block number being processed. Set by `execute_block`.
+	// The current block number being processed. Set by `on_initialize`.
 	#[pallet::storage]
 	pub type Number<T: Config> = StorageValue<_, T::BlockNumber, OptionQuery>;
 
 	#[pallet::storage]
-	pub type ParentHash<T> = StorageValue<_, Hash, ValueQuery>;
-
-	#[pallet::storage]
 	pub type NewAuthorities<T> = StorageValue<_, Vec<AuthorityId>, OptionQuery>;
-
-	#[pallet::storage]
-	pub type StorageDigest<T> = StorageValue<_, Digest, OptionQuery>;
 
 	#[pallet::storage]
 	pub type Authorities<T> = StorageValue<_, Vec<AuthorityId>, ValueQuery>;
@@ -64,25 +53,8 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
-			// populate environment.
 			Number::<T>::put(n);
-			storage::unhashed::put(well_known_keys::EXTRINSIC_INDEX, &0u32);
-            //
-			let d = <frame_system::Pallet<T>>::digest();
-
-			// try to read something that depends on current header digest
-			// so that it'll be included in execution proof
-			if let Some(sp_runtime::generic::DigestItem::Other(v)) = d.logs().iter().next() {
-				let _: Option<u32> = storage::unhashed::get(v);
-			}
-
-
-			frame_support::log::info!(
-				target: "frame::executive",
-				"yyy: on_initialize: {d:#?}",
-			);
-
-			T::WeightInfo::on_finalize()
+			Weight::zero()
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {
@@ -133,7 +105,6 @@ pub mod pallet {
 		pub fn include_data(origin: OriginFor<T>, _data: Vec<u8>) -> DispatchResult {
 			log::trace!("xxxxxxx -> include_data");
 			frame_system::ensure_signed(origin)?;
-			//todo (nothing?)
 			Ok(())
 		}
 
@@ -216,23 +187,12 @@ pub fn balance_of(who: AccountId) -> u64 {
 	storage::hashed::get_or(&blake2_256, &balance_of_key(who), 0)
 }
 
-//todo: can be removed?
-pub fn nonce_of(who: AccountId) -> u64 {
-	storage::hashed::get_or(&blake2_256, &who.to_keyed_vec(NONCE_OF), 0)
-}
-
 pub fn authorities() -> Vec<AuthorityId> {
 	<Authorities<Runtime>>::get()
 }
 
-//todo: can be removed?
 pub fn get_block_number() -> Option<BlockNumber> {
 	<Number<Runtime>>::get()
-}
-
-//todo: can be removed?
-pub fn take_block_number() -> Option<BlockNumber> {
-	<Number<Runtime>>::take()
 }
 
 

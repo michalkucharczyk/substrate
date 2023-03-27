@@ -168,8 +168,7 @@ decl_runtime_apis! {
 		fn vec_with_capacity(size: u32) -> Vec<u8>;
 		/// Returns the initialized block number.
 		fn get_block_number() -> u64;
-		/// Takes and returns the initialized block number.
-		fn take_block_number() -> Option<u64>;
+
 		/// Test that `ed25519` crypto works in the runtime.
 		///
 		/// Returns the signature generated for the message `ed25519` and the public key.
@@ -430,8 +429,6 @@ impl_runtime_apis! {
 
 	impl sp_block_builder::BlockBuilder<Block> for Runtime {
 		fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
-			//todo
-			// system::execute_transaction(extrinsic)
 			Executive::apply_extrinsic(extrinsic)
 		}
 
@@ -495,10 +492,6 @@ impl_runtime_apis! {
 
 		fn get_block_number() -> u64 {
 			system2::get_block_number().expect("Block number is initialized")
-		}
-
-		fn take_block_number() -> Option<u64> {
-			system2::take_block_number()
 		}
 
 		fn test_ed25519_crypto() -> (ed25519::AppSignature, ed25519::AppPublic) {
