@@ -52,7 +52,7 @@ impl Transfer {
 		UncheckedExtrinsicBuilder::new(TransferCallBuilder::new(self).exhaust_resources().build()).build()
 	}
 
-	/// If feasible extracts `Transfer` from given `UncheckedExtrinsic`
+	/// If feasible extract `Transfer` from given `UncheckedExtrinsic`
 	pub fn try_from_unchecked_extrinsic(uxt: &UncheckedExtrinsic) -> Option<Self> {
 		if let RuntimeCall::SubstrateTest(ref test_pallet_call) = uxt.function {
 			if let PalletCall::transfer{transfer,..} = test_pallet_call {
@@ -63,7 +63,7 @@ impl Transfer {
 		None
 	}
 
-	/// Verifies signature and extracts `Transfer` from given `UncheckedExtrinsic`, otherwise returns error
+	/// Verify signature and extracts `Transfer` from given `UncheckedExtrinsic`, otherwise returns error
 	pub fn check_transfer(uxt: &UncheckedExtrinsic) -> Result<Self, TransactionValidityError> {
 		if let RuntimeCall::SubstrateTest(PalletCall::transfer{ref transfer,ref signature, ..}) = uxt.function  {
 			if sp_runtime::verify_encoded_lazy(signature, transfer, &transfer.from) {
