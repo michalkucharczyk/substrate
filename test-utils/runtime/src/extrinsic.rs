@@ -77,7 +77,7 @@ impl Transfer {
 	}
 }
 
-/// Generates `PalletCall::transfer_call`
+/// Generate `PalletCall::transfer_call`
 pub struct TransferCallBuilder {
 	transfer: Transfer, 
 	signature: Option<Signature>,
@@ -85,14 +85,14 @@ pub struct TransferCallBuilder {
 }
 
 impl TransferCallBuilder {
-	/// Creates `Self` with given `transfer` value
+	/// Create `Self` with given `transfer` value
 	pub fn new(transfer: Transfer) -> Self {
 		TransferCallBuilder {
 			transfer, signature: None, exhaust_resources: false
 		}
 	}
 
-	/// Signs `transfer` with `signer` and embeds signature into `PalletCall::transfer_call`
+	/// Sign `transfer` with `signer` and embeds signature into `PalletCall::transfer_call`
 	#[cfg(feature = "std")]
 	pub fn signer(mut self, signer: Pair) -> Self {
 		self.signature = Some(
@@ -101,20 +101,20 @@ impl TransferCallBuilder {
 		self
 	}
 
-	/// Embeds given signature into `PalletCall::transfer_call`
+	/// Embed given signature into `PalletCall::transfer_call`
 	pub fn with_signature(mut self, signature: Signature) -> Self {
 		self.signature = Some(signature);
 		self
 	}
 
-	/// Sets `exhaust_resources` flag of `PalletCall::transfer_call` to true
+	/// Set `exhaust_resources` flag of `PalletCall::transfer_call` to true
 	pub fn exhaust_resources(mut self) -> Self {
 		self.exhaust_resources = true;
 		self
 	}
 
 	#[cfg(feature = "std")]
-	/// Generates instance of `PalletCall::transfer_call`
+	/// Generate instance of `PalletCall::transfer_call`
 	pub fn build<T: substrate_test_pallet::Config>(self) -> PalletCall<T> {
 		let signature = match self.signature {
 			Some(signature) => signature,
@@ -146,7 +146,7 @@ pub struct UncheckedExtrinsicBuilder {
 }
 
 impl UncheckedExtrinsicBuilder {
-	/// Creates builder for given `RuntimeCall`
+	/// Create builder for given `RuntimeCall`
 	pub fn new(function: impl Into<RuntimeCall>) -> Self {
 		Self {
 			function: function.into(),
@@ -154,33 +154,33 @@ impl UncheckedExtrinsicBuilder {
 		}
 	}
 
-	/// Creates builder for given `Transfer`
+	/// Create builder for given `Transfer`
 	pub fn new_transfer(transfer: Transfer) -> Self {
 		Self::new(TransferCallBuilder::new(transfer).build())
 	}
 
-	/// Creates builder for `PalletCall::authorities_change` call using given parameters
+	/// Create builder for `PalletCall::authorities_change` call using given parameters
 	pub fn new_authorities_change(new_authorities: Vec<AuthorityId>) -> Self {
 		Self::new(
 			PalletCall::authorities_change{ new_authorities }
 		)
 	}
 
-	/// Creates builder for `PalletCall::include_data` call using given parameters
+	/// Create builder for `PalletCall::include_data` call using given parameters
 	pub fn new_include_data(data: Vec<u8>) -> Self {
 		Self::new(
 			PalletCall::include_data{ data }
 		)
 	}
 
-	/// Creates builder for `PalletCall::storage_change` call using given parameters
+	/// Create builder for `PalletCall::storage_change` call using given parameters
 	pub fn new_storage_change(key: Vec<u8>, value: Option<Vec<u8>>) -> Self {
 		Self::new(
 			PalletCall::storage_change{ key, value }
 		)
 	}
 
-	/// Creates builder for `PalletCall::storage_change_unsigned` call using given parameters. Will create
+	/// Create builder for `PalletCall::storage_change_unsigned` call using given parameters. Will create
 	/// unsigned UncheckedExtrinsic.
 	pub fn new_storage_change_unsigned(key: Vec<u8>, value: Option<Vec<u8>>) -> Self {
 		Self::new(
@@ -189,28 +189,28 @@ impl UncheckedExtrinsicBuilder {
 		.unsigned()
 	}
 
-	/// Creates builder for `PalletCall::offchain_index_set` call using given parameters
+	/// Create builder for `PalletCall::offchain_index_set` call using given parameters
 	pub fn new_offchain_index_set(key: Vec<u8>, value: Vec<u8>) -> Self {
 		Self::new(
 			PalletCall::offchain_index_set{ key, value }
 		)
 	}
 
-	/// Creates builder for `PalletCall::offchain_index_clear` call using given parameters
+	/// Create builder for `PalletCall::offchain_index_clear` call using given parameters
 	pub fn new_offchain_index_clear(key: Vec<u8>) -> Self {
 		Self::new(
 			PalletCall::offchain_index_clear{ key }
 		)
 	}
 
-	/// Creates builder for `PalletCall::new_store` call using given parameters
+	/// Create builder for `PalletCall::new_store` call using given parameters
 	pub fn new_store(data: Vec<u8>) -> Self {
 		Self::new(
 			PalletCall::store{ data }
 		)
 	}
 
-	/// Creates builder for `PalletCall::new_deposit_log_digest_item` call using given `log`
+	/// Create builder for `PalletCall::new_deposit_log_digest_item` call using given `log`
 	pub fn new_deposit_log_digest_item(log: sp_runtime::generic::DigestItem) -> Self {
 		Self::new(
 			PalletCall::deposit_log_digest_item{ log }
@@ -228,7 +228,7 @@ impl UncheckedExtrinsicBuilder {
 		unimplemented!()
 	}
 
-	/// Builds `UncheckedExtrinsic` using embedded parameters
+	/// Build `UncheckedExtrinsic` using embedded parameters
 	#[cfg(feature = "std")]
 	pub fn build(self) -> UncheckedExtrinsic {
 		if self.is_unsigned {
