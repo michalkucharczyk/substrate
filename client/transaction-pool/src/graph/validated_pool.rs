@@ -129,7 +129,6 @@ impl<B: ChainApi> ValidatedPool<B> {
 
 	/// Bans given set of hashes.
 	pub fn ban(&self, now: &Instant, hashes: impl IntoIterator<Item = ExtrinsicHash<B>>) {
-		// log::trace!("xxx -> ban {:#?}", std::backtrace::Backtrace::force_capture());
 		self.rotator.ban(now, hashes)
 	}
 
@@ -166,8 +165,6 @@ impl<B: ChainApi> ValidatedPool<B> {
 			.into_iter()
 			.map(|validated_tx| self.submit_one(validated_tx))
 			.collect::<Vec<_>>();
-
-		log::trace!("xxx -> submit: {:?}", results);
 
 		// only enforce limits if there is at least one imported transaction
 		let removed = if results.iter().any(|res| res.is_ok()) {

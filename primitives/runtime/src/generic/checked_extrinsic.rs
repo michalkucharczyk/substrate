@@ -71,26 +71,19 @@ where
 		info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> crate::ApplyExtrinsicResultWithInfo<PostDispatchInfoOf<Self::Call>> {
-		log::info!(target: "Applyable","yyy: apply: 1");
 		let (maybe_who, maybe_pre) = if let Some((id, extra)) = self.signed {
-		log::info!(target: "Applyable","yyy: apply: 2");
 			let pre = Extra::pre_dispatch(extra, &id, &self.function, info, len)?;
 			(Some(id), Some(pre))
 		} else {
-		log::info!(target: "Applyable","yyy: apply: 3");
 			Extra::pre_dispatch_unsigned(&self.function, info, len)?;
-		log::info!(target: "Applyable","yyy: apply: 4");
 			U::pre_dispatch(&self.function)?;
-		log::info!(target: "Applyable","yyy: apply: 5");
 			(None, None)
 		};
-		log::info!(target: "Applyable","yyy: apply: 6 maybe_who:{maybe_who:?}");
 		let res = self.function.dispatch(RuntimeOrigin::from(maybe_who));
 		let post_info = match res {
 			Ok(info) => info,
 			Err(err) => err.post_info,
 		};
-		log::info!(target: "Applyable","yyy: apply: 7");
 		Extra::post_dispatch(
 			maybe_pre,
 			info,
@@ -98,7 +91,6 @@ where
 			len,
 			&res.map(|_| ()).map_err(|e| e.error),
 		)?;
-		log::info!(target: "Applyable","yyy: apply: 8");
 		Ok(res)
 	}
 }

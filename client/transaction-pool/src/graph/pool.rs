@@ -17,6 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use crate::LOG_TARGET;
 use futures::{channel::mpsc::Receiver, Future};
 use sc_transaction_pool_api::error;
@@ -347,9 +348,6 @@ impl<B: ChainApi> Pool<B> {
 			self.verify(at, pruned_transactions, CheckBannedBeforeVerify::Yes).await?;
 
 		log::trace!(target: LOG_TARGET, "Pruning at {:?}. Resubmitting transactions.", at);
-		log::trace!(target: LOG_TARGET, "xxx -> known_imported_hashes: {:?}", known_imported_hashes.clone().into_iter().collect::<Vec<_>>());
-		log::trace!(target: LOG_TARGET, "xxx -> pruned_hashes: {pruned_hashes:?}");
-		log::trace!(target: LOG_TARGET, "xxx -> reverified_transactions: {reverified_transactions:?}");
 		// And finally - submit reverified transactions back to the pool
 
 		self.validated_pool.resubmit_pruned(
@@ -665,7 +663,6 @@ mod tests {
 	#[test]
 	fn should_limit_futures() {
 		// given
-		sp_tracing::try_init_simple();
 		let limit = Limit { count: 100, total_bytes: 246 };
 
 		let options = Options { ready: limit.clone(), future: limit.clone(), ..Default::default() };

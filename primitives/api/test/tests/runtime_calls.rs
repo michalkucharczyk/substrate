@@ -71,7 +71,6 @@ fn use_trie_function() {
 
 #[test]
 fn initialize_block_works() {
-	sp_tracing::try_init_simple();
 	let client = TestClientBuilder::new().set_execution_strategy(ExecutionStrategy::Both).build();
 	let runtime_api = client.runtime_api();
 	let best_hash = client.chain_info().best_hash;

@@ -298,15 +298,11 @@ where
 	pub fn estimate_block_size(&self, include_proof: bool) -> usize {
 		let size = self.estimated_header_size + self.extrinsics.encoded_size();
 
-		let size = if include_proof {
-			let a = self.api.proof_recorder().map(|pr| pr.estimate_encoded_size()).unwrap_or(0);
-			log::trace!("xxx: estimate_block_size: {include_proof} {size} {a}");
-			size + a
+		if include_proof {
+			size + self.api.proof_recorder().map(|pr| pr.estimate_encoded_size()).unwrap_or(0)
 		} else {
-			log::trace!("xxx: estimate_block_size: {include_proof} {size}");
 			size
-		};
-		size
+		}
 	}
 }
 
@@ -320,7 +316,6 @@ mod tests {
 
 	#[test]
 	fn block_building_storage_proof_does_not_include_runtime_by_default() {
-		sp_tracing::try_init_simple();
 		let builder = substrate_test_runtime_client::TestClientBuilder::new();
 		let backend = builder.backend();
 		let client = builder.build();

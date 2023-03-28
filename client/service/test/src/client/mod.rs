@@ -1819,8 +1819,6 @@ fn storage_keys_works() {
 	// "a9ee1403384afbfc13f13be91ff70bfac057436212e53b9733914382ac942892" balance://11
 	// "cf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f" balance://alice
 
-	sp_tracing::try_init_simple();
-
 	let client = substrate_test_runtime_client::new();
 
 	let block_hash = client.info().best_hash;

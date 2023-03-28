@@ -467,7 +467,6 @@ mod tests {
 
 	#[tokio::test]
 	async fn transaction_found() {
-		sp_tracing::try_init_simple();
 		let mut client = TestClientBuilder::with_tx_storage(u32::MAX).build();
 		let mut block_builder = client.new_block(Default::default()).unwrap();
 
@@ -479,7 +478,6 @@ mod tests {
 		let block = block_builder.build().unwrap().block;
 
 		client.import(BlockOrigin::File, block.clone()).await.unwrap();
-		log::trace!("xxx -> block indexed body: {:#?}",  client.block_indexed_body(block.hash()));
 
 		let (bitswap, config) = BitswapRequestHandler::new(Arc::new(client));
 
@@ -521,7 +519,6 @@ mod tests {
 
 			let response =
 				schema::bitswap::Message::decode(&result.expect("fetch to succeed")[..]).unwrap();
-			log::trace!("xxx-> payload: {:#?}", response.payload);
 			assert_eq!(response.payload[0].data, vec![0x13, 0x37, 0x13, 0x38]);
 		} else {
 			panic!("invalid event received");

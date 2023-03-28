@@ -596,7 +596,6 @@ mod tests {
 
 	#[test]
 	fn should_cease_building_block_when_deadline_is_reached() {
-		sp_tracing::try_init_simple();
 		// given
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -610,10 +609,6 @@ mod tests {
 
 		block_on(txpool.submit_at(&BlockId::number(0), SOURCE, vec![extrinsic(0), extrinsic(1)]))
 			.unwrap();
-
-		for i in txpool.ready() {
-			log::trace!("xxx before -> txpool.ready(): {:?}", i);
-		}
 
 		block_on(
 			txpool.maintain(chain_event(
@@ -652,10 +647,6 @@ mod tests {
 		// then
 		// block should have some extrinsics although we have some more in the pool.
 		assert_eq!(block.extrinsics().len(), 1);
-		log::trace!("xxx after -> block.extrinsics: {:?}", block.extrinsics());
-		for i in txpool.ready() {
-			log::trace!("xxx -> txpool.ready(): {:?}", i);
-		}
 		assert_eq!(txpool.ready().count(), 2);
 	}
 
@@ -697,8 +688,6 @@ mod tests {
 
 	#[test]
 	fn proposed_storage_changes_should_match_execute_block_storage_changes() {
-		sp_tracing::try_init_simple();
-
 		let (client, backend) = TestClientBuilder::new().build_with_backend();
 		let client = Arc::new(client);
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -843,8 +832,6 @@ mod tests {
 
 	#[test]
 	fn should_cease_building_block_when_block_limit_is_reached() {
-		sp_tracing::try_init_simple();
-
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
 		let txpool = BasicPool::new_full(
@@ -879,11 +866,6 @@ mod tests {
 				.sum::<usize>() +
 			Vec::<UncheckedExtrinsic>::new().encoded_size();
 
-		log::trace!("xxx -> extrinsics:{extrinsics:?}");
-		log::trace!("xxx -> extrinsics:{:?}", extrinsics.len());
-		log::trace!("xxx -> block_limit:{block_limit:?}");
-		log::info!("xxx: ==========================");
-
 		block_on(txpool.submit_at(&BlockId::number(0), SOURCE, extrinsics)).unwrap();
 
 		block_on(txpool.maintain(chain_event(genesis_header.clone())));
@@ -906,7 +888,6 @@ mod tests {
 
 		// Based on the block limit, one transaction shouldn't be included.
 		assert_eq!(block.extrinsics().len(), extrinsics_num - 1);
-		log::info!("xxx: ==========================");
 
 		let proposer = block_on(proposer_factory.init(&genesis_header)).unwrap();
 
@@ -917,7 +898,6 @@ mod tests {
 
 		// Without a block limit we should include all of them
 		assert_eq!(block.extrinsics().len(), extrinsics_num);
-		log::info!("xxx: ==========================");
 
 		let mut proposer_factory = ProposerFactory::with_proof_recording(
 			spawner.clone(),
@@ -942,8 +922,6 @@ mod tests {
 		// The block limit didn't changed, but we now include the proof in the estimation of the
 		// block size and thus, only the `Transfer` will fit into the block. It reads more data
 		// than we have reserved in the block limit.
-		log::trace!("xxx -> block size: {:?}", block.encoded_size());
-		log::trace!("xxx -> block extrs: {:?}", block.extrinsics());
 		assert_eq!(block.extrinsics().len(), 1);
 	}
 
@@ -1012,8 +990,6 @@ mod tests {
 
 	#[test]
 	fn should_only_skip_up_to_some_limit_after_soft_deadline() {
-		sp_tracing::try_init_simple();
-
 		// given
 		let client = Arc::new(substrate_test_runtime_client::new());
 		let spawner = sp_core::testing::TaskExecutor::new();
@@ -1046,9 +1022,6 @@ mod tests {
 					.expect("there should be header"),
 			)),
 		);
-		for i in txpool.ready() {
-			log::trace!("xxx before -> txpool.ready(): {:?}", i);
-		}
 		assert_eq!(txpool.ready().count(), MAX_SKIPPED_TRANSACTIONS * 2 + 2);
 
 		let mut proposer_factory =

@@ -243,8 +243,6 @@ impl<H: Hasher, I: DerefMut<Target = RecorderInner<H::Out>>> trie_db::TrieRecord
 		};
 
 		self.encoded_size_estimation.fetch_add(encoded_size_update, Ordering::Relaxed);
-		// tracing::trace!(target:LOG_TARGET, "xxx: TrieRecorder::record: {:#?}", std::backtrace::Backtrace::force_capture());
-		// tracing::trace!(target:LOG_TARGET, "xxx: trie-recorder encoded_size_estimation: {:?}", self.encoded_size_estimation);
 	}
 
 	fn trie_nodes_recorded_for_key(&self, key: &[u8]) -> RecordedForKey {

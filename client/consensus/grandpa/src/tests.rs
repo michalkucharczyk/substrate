@@ -882,7 +882,6 @@ async fn force_change_to_new_set() {
 
 #[tokio::test]
 async fn allows_reimporting_change_blocks() {
-	sp_tracing::try_init_simple();
 	let peers_a = &[Ed25519Keyring::Alice, Ed25519Keyring::Bob, Ed25519Keyring::Charlie];
 	let peers_b = &[Ed25519Keyring::Alice, Ed25519Keyring::Bob];
 	let voters = make_ids(peers_a);
@@ -900,7 +899,6 @@ async fn allows_reimporting_change_blocks() {
 	add_scheduled_change2(&mut builder, ScheduledChange { next_authorities: make_ids(peers_b), delay: 0 });
 	let block = builder.build().unwrap().block;
 
-	log::trace!("xxx: block: {block:#?}");
 
 	let block = || {
 		let block = block.clone();

@@ -288,19 +288,11 @@ pub fn read_trie_value<L: TrieLayout, DB: hash_db::HashDBRef<L::Hash, trie_db::D
 	recorder: Option<&mut dyn TrieRecorder<TrieHash<L>>>,
 	cache: Option<&mut dyn TrieCache<L::Codec>>,
 ) -> Result<Option<Vec<u8>>, Box<TrieError<L>>> {
-	let v = TrieDBBuilder::<L>::new(db, root)
+	TrieDBBuilder::<L>::new(db, root)
 		.with_optional_cache(cache)
 		.with_optional_recorder(recorder)
 		.build()
-		.get(key);
-
-	if let Ok(Some(ref vv)) = v {
-		log::trace!("xxx: read_trie_value: k:{:?} v:{:?}", sp_core::hexdisplay::HexDisplay::from(&key), sp_core::hexdisplay::HexDisplay::from(vv));
-	} else {
-		log::trace!("xxx: read_trie_value: k:{:?} v:None", sp_core::hexdisplay::HexDisplay::from(&key));
-	}
-
-	v
+		.get(key)
 }
 
 /// Read a value from the trie with given Query.

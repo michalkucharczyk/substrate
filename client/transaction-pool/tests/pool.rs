@@ -472,7 +472,6 @@ fn finalization() {
 
 #[test]
 fn fork_aware_finalization() {
-	sp_tracing::try_init_simple();
 	let api = TestApi::empty();
 	// starting block A1 (last finalized.)
 	let a_header = api.push_block(1, vec![], true);
@@ -697,7 +696,6 @@ fn prune_and_retract_tx_at_same_time() {
 /// blocks are not part of the canonical chain.
 #[test]
 fn resubmit_tx_of_fork_that_is_not_part_of_retracted() {
-	sp_tracing::try_init_simple();
 	let api = TestApi::empty();
 	// starting block A1 (last finalized.)
 	api.push_block(1, vec![], true);
@@ -731,9 +729,6 @@ fn resubmit_tx_of_fork_that_is_not_part_of_retracted() {
 		pool.api().push_block(2, vec![tx1.clone()], false);
 		assert_eq!(pool.status().ready, 1);
 	}
-
-	log::trace!("xxx -> ====================");
-	log::trace!("xxx -> {:#?}", pool.status());
 
 	// Block D2
 	{
@@ -895,7 +890,6 @@ fn ready_set_should_eventually_resolve_when_block_update_arrives() {
 
 #[test]
 fn should_not_accept_old_signatures() {
-	sp_tracing::try_init_simple();
 	let client = Arc::new(substrate_test_runtime_client::new());
 	let best_hash = client.info().best_hash;
 	let finalized_hash = client.info().finalized_hash;
