@@ -22,8 +22,6 @@
 use crate::{ed25519, sr25519};
 #[cfg(feature = "std")]
 use bip39::{Language, Mnemonic, MnemonicType};
-#[cfg(feature = "serde")]
-use base58::{FromBase58, ToBase58};
 use codec::{Decode, Encode, MaxEncodedLen};
 #[cfg(feature = "std")]
 use rand::{rngs::OsRng, RngCore};
