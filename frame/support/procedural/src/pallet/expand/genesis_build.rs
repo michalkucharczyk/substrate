@@ -41,31 +41,21 @@ pub fn expand_genesis_build(def: &mut Def) -> proc_macro2::TokenStream {
 
 	let gen_cfg_use_gen = genesis_config.gen_kind.type_use_gen(genesis_build.attr_span);
 
-	let genesis_build_item =
-		&mut def.item.content.as_mut().expect("Checked by def parser").1[genesis_build.index];
+	//let genesis_build_item =
+	//	&mut def.item.content.as_mut().expect("Checked by def parser").1[genesis_build.index];
 
-	let genesis_build_item_impl = if let syn::Item::Impl(impl_) = genesis_build_item {
-		impl_
-	} else {
-		unreachable!("Checked by genesis_build parser")
-	};
-
-	genesis_build_item_impl.attrs.push(syn::parse_quote!( #[cfg(feature = "std")] ));
+	// genesis_build_item_impl.attrs.push(syn::parse_quote!( #[cfg(any(feature = "std"))] ));
 	let where_clause = &genesis_build.where_clause;
 
 	quote::quote_spanned!(genesis_build.attr_span =>
-		#[cfg(feature = "std")]
+		// #[cfg(feature = "genesis-config-support")]
 		impl<#type_impl_gen> #frame_support::sp_runtime::BuildModuleGenesisStorage<#trait_use_gen>
 			for #gen_cfg_ident<#gen_cfg_use_gen> #where_clause
 		{
 			fn build_module_genesis_storage(
 				&self,
-				storage: &mut #frame_support::sp_runtime::Storage,
-			) -> std::result::Result<(), std::string::String> {
-				#frame_support::BasicExternalities::execute_with_storage(storage, || {
+			)  {
 					<Self as #frame_support::traits::GenesisBuild<#type_use_gen>>::build(self);
-					Ok(())
-				})
 			}
 		}
 	)
