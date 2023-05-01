@@ -81,9 +81,9 @@ pub use metadata::{
 
 mod hooks;
 #[cfg(feature = "std")]
-pub use hooks::GenesisBuild;
+pub use hooks::GenesisBuildExt;
 pub use hooks::{
-	Hooks, IntegrityTest, OnFinalize, OnGenesis, OnIdle, OnInitialize, OnRuntimeUpgrade,
+	GenesisBuild, Hooks, IntegrityTest, OnFinalize, OnGenesis, OnIdle, OnInitialize, OnRuntimeUpgrade,
 	OnTimestampSet,
 };
 

@@ -24,7 +24,7 @@ use crate as pallet_child_bounties;
 
 use frame_support::{
 	assert_noop, assert_ok,
-	pallet_prelude::GenesisBuild,
+	pallet_prelude::GenesisBuildExt,
 	parameter_types,
 	traits::{ConstU32, ConstU64, OnInitialize},
 	weights::Weight,
@@ -169,7 +169,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	GenesisBuild::<Test>::assimilate_storage(&pallet_treasury::GenesisConfig, &mut t).unwrap();
+	GenesisBuildExt::<Test>::assimilate_storage(&pallet_treasury::GenesisConfig, &mut t).unwrap();
 	t.into()
 }
 
