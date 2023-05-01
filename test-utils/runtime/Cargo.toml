@@ -33,7 +33,7 @@ frame-support = { version = "4.0.0-dev", default-features = false, path = "../..
 sp-version = { version = "5.0.0", default-features = false, path = "../../primitives/version" }
 sp-session = { version = "4.0.0-dev", default-features = false, path = "../../primitives/session" }
 sp-api = { version = "4.0.0-dev", default-features = false, path = "../../primitives/api" }
-sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime" }
+sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime", features = ["serde"] }
 pallet-babe = { version = "4.0.0-dev", default-features = false, path = "../../frame/babe" }
 pallet-balances = { version = "4.0.0-dev", default-features = false, path = "../../frame/balances" }
 pallet-root-testing = { version = "1.0.0-dev", default-features = false, path = "../../frame/root-testing" }
@@ -54,7 +54,7 @@ sp-debug-derive = { path = "../../primitives/debug-derive" }
 # 3rd party
 array-bytes = { version = "6.1", optional = true }
 log = { version = "0.4.17", default-features = false }
-serde = { version = "1.0.136", optional = true, features = ["derive"] }
+serde = { version = "1.0.136", features = ["alloc", "derive"], default-features = false }
 
 [dev-dependencies]
 futures = "0.3.21"
@@ -92,7 +92,7 @@ std = [
 	"sp-io/std",
 	"frame-support/std",
 	"sp-version/std",
-	"serde",
+	"serde/std",
 	"sp-session/std",
 	"sp-api/std",
 	"sp-runtime/std",

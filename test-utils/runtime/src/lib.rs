@@ -149,6 +149,35 @@ pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedE
 pub type Extrinsic =
 	sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
+#[cfg(all(not(feature = "std")))]
+use sp_std::{
+	alloc::{format, string::String},
+	vec,
+};
+
+// #[cfg(feature = "std")]
+impl serde::Serialize for Extrinsic {
+	fn serialize<S>(&self, seq: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		self.using_encoded(|bytes| seq.serialize_bytes(bytes))
+	}
+}
+
+// rustc can't deduce this trait bound https://github.com/rust-lang/rust/issues/48214
+// #[cfg(feature = "std")]
+impl<'a> serde::Deserialize<'a> for Extrinsic {
+	fn deserialize<D>(de: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'a>,
+	{
+		let r = sp_core::bytes::deserialize(de)?;
+		Decode::decode(&mut &r[..])
+			.map_err(|e| serde::de::Error::custom(format!("Decode error: {}", e)))
+	}
+}
+
 /// An identifier for an account on this system.
 pub type AccountId = <Signature as Verify>::Signer;
 /// A simple hash type for all our hashing.
