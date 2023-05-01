@@ -22,6 +22,7 @@ fn main() {
 			.with_current_project()
 			.export_heap_base()
 			.import_memory()
+			.enable_feature("genesis-config-support")
 			.build();
 	}
 }
