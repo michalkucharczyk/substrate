@@ -710,7 +710,6 @@ pub mod pallet {
 		pub members: Vec<(T::AccountId, BalanceOf<T>)>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self { members: Default::default() }
