@@ -141,6 +141,6 @@ fn expand_config_build_storage_call(
 	quote! {
 		#attr
 		#scrate::sp_runtime::BuildModuleGenesisStorage::
-			<#runtime, #instance>::build_module_genesis_storage(&self.#field_name, storage)?;
+			<#runtime, #instance>::build_module_genesis_storage(&self.#field_name);
 	}
 }
