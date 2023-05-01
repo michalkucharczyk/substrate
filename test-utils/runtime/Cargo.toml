@@ -33,7 +33,7 @@ frame-support = { version = "4.0.0-dev", default-features = false, path = "../..
 sp-version = { version = "5.0.0", default-features = false, path = "../../primitives/version" }
 sp-session = { version = "4.0.0-dev", default-features = false, path = "../../primitives/session" }
 sp-api = { version = "4.0.0-dev", default-features = false, path = "../../primitives/api" }
-sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime" }
+sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime", features = ["serde"] }
 pallet-babe = { version = "4.0.0-dev", default-features = false, path = "../../frame/babe" }
 frame-system = { version = "4.0.0-dev", default-features = false, path = "../../frame/system" }
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, path = "../../frame/system/rpc/runtime-api" }
@@ -49,7 +49,7 @@ sp-externalities = { version = "0.13.0", default-features = false, path = "../..
 # 3rd party
 cfg-if = "1.0"
 log = { version = "0.4.17", default-features = false }
-serde = { version = "1.0.136", optional = true, features = ["derive"] }
+serde = { version = "1.0.136", features = ["alloc", "derive"], default-features = false }
 
 [dev-dependencies]
 sc-block-builder = { version = "0.10.0-dev", path = "../../client/block-builder" }
@@ -86,7 +86,7 @@ std = [
 	"sp-io/std",
 	"frame-support/std",
 	"sp-version/std",
-	"serde",
+	"serde/std",
 	"sp-session/std",
 	"sp-api/std",
 	"sp-runtime/std",

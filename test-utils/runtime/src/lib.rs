@@ -174,7 +174,13 @@ pub enum Extrinsic {
 	Read(u32),
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(not(feature = "std")))]
+use sp_std::{
+	alloc::{format, string::String},
+	vec,
+};
+
+// #[cfg(feature = "std")]
 impl serde::Serialize for Extrinsic {
 	fn serialize<S>(&self, seq: S) -> Result<S::Ok, S::Error>
 	where
@@ -185,7 +191,7 @@ impl serde::Serialize for Extrinsic {
 }
 
 // rustc can't deduce this trait bound https://github.com/rust-lang/rust/issues/48214
-#[cfg(feature = "std")]
+// #[cfg(feature = "std")]
 impl<'a> serde::Deserialize<'a> for Extrinsic {
 	fn deserialize<D>(de: D) -> Result<Self, D::Error>
 	where
