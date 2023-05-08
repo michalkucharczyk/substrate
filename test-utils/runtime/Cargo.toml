@@ -56,6 +56,7 @@ sp-debug-derive = { path = "../../primitives/debug-derive" }
 array-bytes = { version = "6.1", optional = true }
 log = { version = "0.4.17", default-features = false }
 serde = { version = "1.0.136", features = ["alloc", "derive"], default-features = false }
+serde_json = { version = "1.0.85", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 futures = "0.3.21"

@@ -498,6 +498,7 @@ pub(crate) const TEST_RUNTIME_BABE_EPOCH_CONFIGURATION: BabeEpochConfiguration =
 		allowed_slots: AllowedSlots::PrimaryAndSecondaryPlainSlots,
 	};
 
+use serde_json as json;
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
@@ -748,17 +749,19 @@ impl_runtime_apis! {
 
 	impl sc_genesis_builder::GenesisBuilder<Block> for Runtime {
 		fn write_default_config() -> bool {
-			log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config");
-			//todo
-			const KEY: &[u8] = b":xyxyxxxxxxxxxxxyyyyyyyyyy";
-			sp_io::storage::set(KEY, b"ababaaaaaaaabbbbbbbbb");
+			let gc = GenesisConfig::default();
+			gc.buildxxx();
+			true
+		}
 
-			GenesisConfig::buildxxx();
+		fn default_config_as_json() -> Vec<u8> {
+			json::to_string(&GenesisConfig::default()).expect("xxx").into_bytes()
+		}
 
-			// let mut v = [0u8; 4];
-			// let r = sp_io::storage::read(KEY, &mut v, 0);
-			// assert_eq!(r, Some(4));
-			// assert_eq!(&v, b"test");
+		fn build_genesis_config_from_json(json: sp_std::vec::Vec<u8>) -> bool {
+			log::trace!("build_genesis_config_from_json: {:?}", json);
+			let gc = json::from_slice::<GenesisConfig>(&json).expect("xxx");
+			gc.buildxxx();
 			true
 		}
 	}
@@ -885,6 +888,17 @@ pub mod storage_key_generator {
 		sp_core::hashing::twox_64(x).iter().chain(x.iter()).cloned().collect::<Vec<_>>()
 	}
 
+	pub fn get_storage_version_hashed_keys() -> Vec<String> {
+		let keys: Vec<Vec<&[u8]>> = vec![
+			vec![b"Babe", b":__STORAGE_VERSION__:"],
+			vec![b"Balances", b":__STORAGE_VERSION__:"],
+			vec![b"SubstrateTest", b":__STORAGE_VERSION__:"],
+			vec![b"System", b":__STORAGE_VERSION__:"],
+		];
+
+		keys.iter().map(concat_hashes).collect::<Vec<String>>()
+	}
+
 	/// Generate the hashed storage keys from the raw literals. These keys are expected to be be in
 	/// storage with given substrate-test runtime.
 	pub fn generate_expected_storage_hashed_keys() -> Vec<String> {
@@ -895,21 +909,18 @@ pub mod storage_key_generator {
 			vec![b"Babe", b"EpochConfig"],
 			vec![b"Babe", b"NextAuthorities"],
 			vec![b"Babe", b"SegmentIndex"],
-			vec![b"Babe", b":__STORAGE_VERSION__:"],
-			vec![b"Balances", b":__STORAGE_VERSION__:"],
 			vec![b"Balances", b"TotalIssuance"],
 			vec![b"SubstrateTest", b"Authorities"],
-			vec![b"SubstrateTest", b":__STORAGE_VERSION__:"],
 			vec![b"System", b"LastRuntimeUpgrade"],
 			vec![b"System", b"ParentHash"],
-			vec![b"System", b":__STORAGE_VERSION__:"],
 			vec![b"System", b"UpgradedToTripleRefCount"],
 			vec![b"System", b"UpgradedToU32RefCount"],
 		];
 
 		let mut expected_keys = keys.iter().map(concat_hashes).collect::<Vec<String>>();
 
-		expected_keys.extend(literals.into_iter().map(hex));
+		expected_keys.extend(get_storage_version_hashed_keys());
+		expected_keys.extend(literals.iter().map(hex::encode));
 
 		let balances_map_keys = (0..16_usize)
 			.into_iter()
@@ -1037,19 +1048,14 @@ pub mod storage_key_generator {
 	}
 }
 
+//todo: move to macro
 use frame_support::traits::GenesisBuild;
 impl GenesisConfig {
-	pub fn buildxxx() {
-		let gc = GenesisConfig::default();
-		 // <Self as frame_support::traits::GenesisBuild<T>>::build(self);
-		 <frame_system::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.system);
-		 <pallet_babe::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.babe);
-		 <substrate_test_pallet::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.substrate_test);
-		 <pallet_balances::GenesisConfig<Runtime> as GenesisBuild<Runtime>>::build(&gc.balances);
-		// self.system.build();
-		// self.babe.build();
-		// self.substrate_test.build();
-		// self.balances.build();
+	pub fn buildxxx(&self) {
+		 <frame_system::GenesisConfig as GenesisBuild<Runtime>>::build(&self.system);
+		 <pallet_babe::GenesisConfig as GenesisBuild<Runtime>>::build(&self.babe);
+		 <substrate_test_pallet::GenesisConfig as GenesisBuild<Runtime>>::build(&self.substrate_test);
+		 <pallet_balances::GenesisConfig<Runtime> as GenesisBuild<Runtime>>::build(&self.balances);
 	}
 }
 
@@ -1301,33 +1307,108 @@ mod tests {
 		}
 	}
 
+	use sp_core::traits::Externalities;
 	pub fn executor_call(
-		t: &mut TestExternalities<BlakeTwo256>,
+		// t: &mut TestExternalities<BlakeTwo256>,
+		t: &mut dyn Externalities,
 		method: &str,
 		data: &[u8],
 	) -> (Result<Vec<u8>>, bool) {
 		let code = wasm_binary_unwrap();
-		let mut t = t.ext();
 		let runtime_code = RuntimeCode {
 			code_fetcher: &sp_core::traits::WrappedRuntimeCode(code.into()),
 			hash: sp_core::blake2_256(&code).to_vec(),
-			heap_pages: Some(16),
+			heap_pages: Some(1024),
 		};
-		NativeElseWasmExecutor::<LocalExecutorDispatch>::new_with_wasm_executor(WasmExecutor::builder().build()).call(&mut t, &runtime_code, method, data, false, CallContext::Onchain)
+		let use_native = false;
+		NativeElseWasmExecutor::<LocalExecutorDispatch>::new_with_wasm_executor(WasmExecutor::builder().build()).call(t, &runtime_code, method, data, use_native, CallContext::Onchain)
 	}
 
 	#[test]
 	fn testxx1() {
 		sp_tracing::try_init_simple();
-		// let client =
-		// 	TestClientBuilder::new().set_execution_strategy(ExecutionStrategy::AlwaysWasm).build();
-		// let runtime_api = client.runtime_api();
-
-		// let mut t = TestExternalities::new_with_code(wasm_binary_unwrap(), Default::default());
-		let mut t = TestExternalities::new_empty();
-		executor_call(&mut t, "GenesisBuilder_write_default_config", &vec![]);
+		let mut t : TestExternalities<BlakeTwo256> = TestExternalities::new_empty();
+		executor_call(&mut t.ext(), "GenesisBuilder_write_default_config", &vec![]);
 		log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config: {:#2x?}", t);
 		t.overlayed_changes().iter_after(b"").map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone().into_value().unwrap()) )).for_each(drop);
 
+	}
+
+	use sp_state_machine::BasicExternalities;
+	use std::io::Write; // bring trait into scope
+	use std::fs;		
+
+	#[test]
+	fn testxx2() {
+		sp_tracing::try_init_simple();
+		let mut t = BasicExternalities::new_empty();
+		executor_call(&mut t, "GenesisBuilder_write_default_config", &vec![]);
+		// log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config: {:#2x?}", t);
+		t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone()))).for_each(drop);
+	}
+
+	#[test]
+	fn testxx3() {
+		use std::io::Write; // bring trait into scope
+		use std::fs;		
+
+		sp_tracing::try_init_simple();
+		let mut t = BasicExternalities::new_empty();
+		//default_config_as_json 
+		let mut r = executor_call(&mut t, "GenesisBuilder_default_config_as_json", &vec![]).0.unwrap();
+		let r = Vec::<u8>::decode(&mut &r[..]).unwrap();
+		println!("r:{r:?}");
+		let mut file = fs::OpenOptions::new()
+			.create(true) // To create a new file
+			.write(true)
+			.open("/tmp/xx1").unwrap();
+
+		file.write_all(&r);
+		let j = String::from_utf8(r.into()).expect("xx");
+		println!("{j}");
+	}
+
+	use crate::genesismap::GenesisStorageBuilder;
+	#[test]
+	fn testxx4() {
+		sp_tracing::try_init_simple();
+		let j = json::to_string(&GenesisStorageBuilder::default().genesis_config()).unwrap().into_bytes();
+
+		let mut file = fs::OpenOptions::new()
+			.create(true) // To create a new file
+			.write(true)
+			.open("/tmp/default_genesis_config.json").unwrap();
+
+		file.write_all(&j);
+		println!("{:?}", String::from_utf8(j));
+	}
+
+	#[test]
+	fn test_parse_json_and_create_storage_works() {
+		sp_tracing::try_init_simple();
+		let j = std::fs::read("/tmp/default_genesis_config.json").unwrap();
+
+		let mut t = BasicExternalities::new_empty();
+		//build_genesis_config_from_json 
+		let mut r = executor_call(&mut t, "GenesisBuilder_build_genesis_config_from_json", &j.encode()).0.unwrap();
+		// let r = Vec::<u8>::decode(&mut &r[..]).unwrap();
+
+		println!("json:{:?}", String::from_utf8(j));
+		println!("storage:");
+		// t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone()))).for_each(drop);
+
+		let mut keys = t.into_storages().top
+			.keys()
+			.cloned()
+			.map(hex::encode)
+			.collect::<Vec<String>>();
+		keys.extend(storage_key_generator::get_storage_version_hashed_keys());
+
+		keys.push(hex::encode(b":heappages"));
+		keys.sort();
+		assert_eq!(
+			keys,
+			storage_key_generator::get_expected_storage_hashed_keys()
+		);
 	}
 }
