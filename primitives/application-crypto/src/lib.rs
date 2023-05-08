@@ -21,11 +21,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use sp_core::crypto::{key_types, CryptoTypeId, KeyTypeId};
+#[cfg(feature = "full_crypto")]
+pub use sp_core::crypto::{DeriveError, Pair, SecretStringError};
 #[doc(hidden)]
 #[cfg(any(feature = "full_crypto", feature = "serde"))]
 pub use sp_core::crypto::{DeriveJunction, Ss58Codec};
-#[cfg(feature = "full_crypto")]
-pub use sp_core::crypto::{DeriveError, Pair, SecretStringError};
 #[doc(hidden)]
 pub use sp_core::{
 	self,

@@ -19,12 +19,12 @@
 //!
 //! Note: `CHAIN_CODE_LENGTH` must be equal to `crate::crypto::JUNCTION_ID_LEN`
 //! for this to work.
+#[cfg(any(feature = "full_crypto", feature = "serde"))]
+use crate::crypto::DeriveJunction;
 #[cfg(feature = "serde")]
 use crate::crypto::Ss58Codec;
 #[cfg(feature = "full_crypto")]
 use crate::crypto::{DeriveError, Pair as TraitPair, SecretStringError};
-#[cfg(any(feature = "full_crypto", feature = "serde"))]
-use crate::crypto::DeriveJunction;
 #[cfg(feature = "full_crypto")]
 use schnorrkel::{
 	derive::CHAIN_CODE_LENGTH, signing_context, ExpansionMode, Keypair, MiniSecretKey, SecretKey,

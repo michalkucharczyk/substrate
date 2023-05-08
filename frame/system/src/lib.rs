@@ -98,9 +98,9 @@ use scale_info::TypeInfo;
 use sp_core::storage::well_known_keys;
 use sp_weights::{RuntimeDbWeight, Weight};
 
+use frame_support::traits::GenesisBuild;
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuildExt;
-use frame_support::traits::GenesisBuild;
 #[cfg(any(feature = "std", test))]
 use sp_io::TestExternalities;
 

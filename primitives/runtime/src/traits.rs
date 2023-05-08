@@ -1792,7 +1792,7 @@ macro_rules! impl_opaque_keys {
 }
 
 #[macro_export]
-#[cfg(all(not(feature = "std"), not(feature="serde")))]
+#[cfg(all(not(feature = "std"), not(feature = "serde")))]
 #[doc(hidden)]
 macro_rules! impl_opaque_keys {
 	{
