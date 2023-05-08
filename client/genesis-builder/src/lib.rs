@@ -24,5 +24,7 @@
 sp_api::decl_runtime_apis! {
 	pub trait GenesisBuilder {
 		fn write_default_config() -> bool;
+		fn default_config_as_json() -> sp_std::vec::Vec<u8>;
+		fn build_genesis_config_from_json(json: sp_std::vec::Vec<u8>) -> bool;
 	}
 }
