@@ -70,6 +70,7 @@ fn decl_genesis_config_and_impl_default(
 	quote!(
 		/// Genesis config for the module, allow to build genesis storage.
 		#[derive(#scrate::Serialize, #scrate::Deserialize)]
+		// #[cfg(feature = "std")]
 		#[serde(rename_all = "camelCase")]
 		#[serde(deny_unknown_fields)]
 		#[serde(crate = #serde_crate)]
@@ -78,6 +79,7 @@ fn decl_genesis_config_and_impl_default(
 			#( #config_fields )*
 		}
 
+		#[cfg(feature = "std")]
 		impl #genesis_impl Default for GenesisConfig #genesis_struct #genesis_where_clause {
 			fn default() -> Self {
 				GenesisConfig {
@@ -166,7 +168,6 @@ fn impl_build_storage(
 				&self,
 				storage: &mut #scrate::sp_runtime::Storage,
 			) -> std::result::Result<(), String> {
-				//todo: cleanup
 				self.assimilate_storage::<#fn_traitinstance> (storage)
 			}
 		}

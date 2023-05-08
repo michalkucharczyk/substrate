@@ -713,6 +713,23 @@ impl_runtime_apis! {
 			None
 		}
 	}
+
+	impl sc_genesis_builder::GenesisBuilder<Block> for Runtime {
+		fn write_default_config() -> bool {
+			log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config");
+			//todo
+			const KEY: &[u8] = b":xyxyxxxxxxxxxxxyyyyyyyyyy";
+			sp_io::storage::set(KEY, b"ababaaaaaaaabbbbbbbbb");
+
+			GenesisConfig::buildxxx();
+
+			// let mut v = [0u8; 4];
+			// let r = sp_io::storage::read(KEY, &mut v, 0);
+			// assert_eq!(r, Some(4));
+			// assert_eq!(&v, b"test");
+			true
+		}
+	}
 }
 
 fn test_ed25519_crypto() -> (ed25519::AppSignature, ed25519::AppPublic) {
@@ -981,6 +998,22 @@ pub mod storage_key_generator {
 	}
 }
 
+use frame_support::traits::GenesisBuild;
+impl GenesisConfig {
+	pub fn buildxxx() {
+		let gc = GenesisConfig::default();
+		 // <Self as frame_support::traits::GenesisBuild<T>>::build(self);
+		 <frame_system::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.system);
+		 <pallet_babe::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.babe);
+		 <substrate_test_pallet::GenesisConfig as GenesisBuild<Runtime>>::build(&gc.substrate_test);
+		 <pallet_balances::GenesisConfig<Runtime> as GenesisBuild<Runtime>>::build(&gc.balances);
+		// self.system.build();
+		// self.babe.build();
+		// self.substrate_test.build();
+		// self.balances.build();
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -1192,5 +1225,70 @@ mod tests {
 				false
 			);
 		})
+	}
+
+	use sc_genesis_builder::GenesisBuilder;
+	#[test]
+	fn testxxx() {
+		sp_tracing::try_init_simple();
+		let client =
+			TestClientBuilder::new().set_execution_strategy(ExecutionStrategy::AlwaysWasm).build();
+			// TestClientBuilder::new().build();
+		let runtime_api = client.runtime_api();
+
+		let best_hash = client.chain_info().best_hash;
+		runtime_api.write_default_config(best_hash).unwrap();
+	}
+
+	use sp_state_machine::TestExternalities;
+	use sp_core::traits::{CallContext, CodeExecutor, RuntimeCode};
+	use sc_executor::{error::Result, NativeElseWasmExecutor, WasmExecutor};
+
+	// pub fn executor() -> NativeElseWasmExecutor<ExecutorDispatch> {
+	// 	
+	// }
+
+	pub struct LocalExecutorDispatch;
+
+	impl sc_executor::NativeExecutionDispatch for LocalExecutorDispatch {
+		type ExtendHostFunctions = ();
+
+		fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+			api::dispatch(method, data)
+		}
+
+		fn native_version() -> sc_executor::NativeVersion {
+			native_version()
+		}
+	}
+
+	pub fn executor_call(
+		t: &mut TestExternalities<BlakeTwo256>,
+		method: &str,
+		data: &[u8],
+	) -> (Result<Vec<u8>>, bool) {
+		let code = wasm_binary_unwrap();
+		let mut t = t.ext();
+		let runtime_code = RuntimeCode {
+			code_fetcher: &sp_core::traits::WrappedRuntimeCode(code.into()),
+			hash: sp_core::blake2_256(&code).to_vec(),
+			heap_pages: Some(16),
+		};
+		NativeElseWasmExecutor::<LocalExecutorDispatch>::new_with_wasm_executor(WasmExecutor::builder().build()).call(&mut t, &runtime_code, method, data, false, CallContext::Onchain)
+	}
+
+	#[test]
+	fn testxx1() {
+		sp_tracing::try_init_simple();
+		// let client =
+		// 	TestClientBuilder::new().set_execution_strategy(ExecutionStrategy::AlwaysWasm).build();
+		// let runtime_api = client.runtime_api();
+
+		// let mut t = TestExternalities::new_with_code(wasm_binary_unwrap(), Default::default());
+		let mut t = TestExternalities::new_empty();
+		executor_call(&mut t, "GenesisBuilder_write_default_config", &vec![]);
+		log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config: {:#2x?}", t);
+		t.overlayed_changes().iter_after(b"").map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone().into_value().unwrap()) )).for_each(drop);
+
 	}
 }
