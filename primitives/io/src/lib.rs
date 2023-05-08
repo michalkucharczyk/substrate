@@ -139,6 +139,7 @@ pub trait Storage {
 
 	/// Set `key` to `value` in the storage.
 	fn set(&mut self, key: &[u8], value: &[u8]) {
+		log::debug!(target: "runtime", "xxxx -> backtrace {:#?}", std::backtrace::Backtrace::force_capture());
 		self.set_storage(key.to_vec(), value.to_vec());
 	}
 

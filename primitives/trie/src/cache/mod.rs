@@ -548,7 +548,11 @@ impl<'a, H: Hasher> trie_db::TrieCache<NodeCodec<H>> for TrieCache<'a, H> {
 	) -> trie_db::Result<&NodeOwned<H::Out>, H::Out, Error<H::Out>> {
 		let mut is_local_cache_hit = true;
 		self.stats.node_cache.local_fetch_attempts.fetch_add(1, Ordering::Relaxed);
-
+				tracing::trace!(
+					target: LOG_TARGET,
+					"xxx: TrieCache::get_or_insert_node: {:#?}",
+					std::backtrace::Backtrace::force_capture()
+				);
 		// First try to grab the node from the local cache.
 		let node = self.local_cache.get_or_insert_fallible(hash, || {
 			is_local_cache_hit = false;
