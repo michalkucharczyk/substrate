@@ -67,9 +67,9 @@ pub fn expand_outer_config(
 
 		#types
 
-		#[cfg(any(feature = "std", test))]
+		// #[cfg(any(feature = "std", test))]
 		use #scrate::serde as __genesis_config_serde_import__;
-		#[cfg(any(feature = "std", test))]
+		// #[cfg(any(feature = "std", test))]
 		#[derive(#scrate::serde::Serialize, #scrate::serde::Deserialize, Default)]
 		#[serde(rename_all = "camelCase")]
 		#[serde(deny_unknown_fields)]
@@ -108,17 +108,17 @@ fn expand_config_types(
 	match (decl.instance.as_ref(), part_is_generic) {
 		(Some(inst), true) => quote! {
 			#attr
-			#[cfg(any(feature = "std", test))]
+			// #[cfg(any(feature = "std", test))]
 			pub type #config = #path::GenesisConfig<#runtime, #path::#inst>;
 		},
 		(None, true) => quote! {
 			#attr
-			#[cfg(any(feature = "std", test))]
+			// #[cfg(any(feature = "std", test))]
 			pub type #config = #path::GenesisConfig<#runtime>;
 		},
 		(_, false) => quote! {
 			#attr
-			#[cfg(any(feature = "std", test))]
+			// #[cfg(any(feature = "std", test))]
 			pub type #config = #path::GenesisConfig;
 		},
 	}
@@ -141,6 +141,6 @@ fn expand_config_build_storage_call(
 	quote! {
 		#attr
 		#scrate::sp_runtime::BuildModuleGenesisStorage::
-			<#runtime, #instance>::build_module_genesis_storage(&self.#field_name);
+			<#runtime, #instance>::build_module_genesis_storage(&self.#field_name, storage)?;
 	}
 }
