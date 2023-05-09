@@ -148,36 +148,6 @@ pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedE
 /// Unchecked extrinsic type as expected by this runtime.
 pub type Extrinsic =
 	sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
-
-#[cfg(all(not(feature = "std")))]
-use sp_std::{
-	alloc::{format, string::String},
-	vec,
-};
-
-// #[cfg(feature = "std")]
-impl serde::Serialize for Extrinsic {
-	fn serialize<S>(&self, seq: S) -> Result<S::Ok, S::Error>
-	where
-		S: serde::Serializer,
-	{
-		self.using_encoded(|bytes| seq.serialize_bytes(bytes))
-	}
-}
-
-// rustc can't deduce this trait bound https://github.com/rust-lang/rust/issues/48214
-// #[cfg(feature = "std")]
-impl<'a> serde::Deserialize<'a> for Extrinsic {
-	fn deserialize<D>(de: D) -> Result<Self, D::Error>
-	where
-		D: serde::Deserializer<'a>,
-	{
-		let r = sp_core::bytes::deserialize(de)?;
-		Decode::decode(&mut &r[..])
-			.map_err(|e| serde::de::Error::custom(format!("Decode error: {}", e)))
-	}
-}
-
 /// An identifier for an account on this system.
 pub type AccountId = <Signature as Verify>::Signer;
 /// A simple hash type for all our hashing.
@@ -920,7 +890,7 @@ pub mod storage_key_generator {
 		let mut expected_keys = keys.iter().map(concat_hashes).collect::<Vec<String>>();
 
 		expected_keys.extend(get_storage_version_hashed_keys());
-		expected_keys.extend(literals.iter().map(hex::encode));
+		expected_keys.extend(literals.into_iter().map(hex));
 
 		let balances_map_keys = (0..16_usize)
 			.into_iter()
@@ -1288,6 +1258,7 @@ mod tests {
 	use sp_state_machine::TestExternalities;
 	use sp_core::traits::{CallContext, CodeExecutor, RuntimeCode};
 	use sc_executor::{error::Result, NativeElseWasmExecutor, WasmExecutor};
+	use storage_key_generator::hex;
 
 	// pub fn executor() -> NativeElseWasmExecutor<ExecutorDispatch> {
 	// 	
@@ -1330,7 +1301,7 @@ mod tests {
 		let mut t : TestExternalities<BlakeTwo256> = TestExternalities::new_empty();
 		executor_call(&mut t.ext(), "GenesisBuilder_write_default_config", &vec![]);
 		log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config: {:#2x?}", t);
-		t.overlayed_changes().iter_after(b"").map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone().into_value().unwrap()) )).for_each(drop);
+		t.overlayed_changes().iter_after(b"").map( |(k,v)| println!("{:?} {:2x?}", hex(k), hex(v.clone().into_value().unwrap()) )).for_each(drop);
 
 	}
 
@@ -1344,7 +1315,7 @@ mod tests {
 		let mut t = BasicExternalities::new_empty();
 		executor_call(&mut t, "GenesisBuilder_write_default_config", &vec![]);
 		// log::trace!(target:LOG_TARGET, "xxxxxxxxxxxxxx write_default_config: {:#2x?}", t);
-		t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone()))).for_each(drop);
+		t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex(k), hex(v.clone()))).for_each(drop);
 	}
 
 	#[test]
@@ -1390,16 +1361,16 @@ mod tests {
 
 		println!("json:{:?}", String::from_utf8(j));
 		println!("storage:");
-		// t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex::encode(k), hex::encode(v.clone()))).for_each(drop);
+		// t.into_storages().top.iter().map( |(k,v)| println!("{:?} {:2x?}", hex(k), hex(v.clone()))).for_each(drop);
 
 		let mut keys = t.into_storages().top
 			.keys()
 			.cloned()
-			.map(hex::encode)
+			.map(hex)
 			.collect::<Vec<String>>();
 		keys.extend(storage_key_generator::get_storage_version_hashed_keys());
 
-		keys.push(hex::encode(b":heappages"));
+		keys.push(hex(b":heappages"));
 		keys.sort();
 		assert_eq!(
 			keys,
