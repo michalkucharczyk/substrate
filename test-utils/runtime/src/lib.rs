@@ -1321,7 +1321,7 @@ mod tests {
 			heap_pages: Some(1024),
 		};
 		let use_native = false;
-		NativeElseWasmExecutor::<LocalExecutorDispatch>::new_with_wasm_executor(WasmExecutor::builder().build()).call(t, &runtime_code, method, data, use_native, CallContext::Onchain)
+		NativeElseWasmExecutor::<LocalExecutorDispatch>::new_with_wasm_executor(WasmExecutor::builder().build()).call(t, &runtime_code, method, data, use_native, CallContext::Offchain)
 	}
 
 	#[test]
@@ -1348,8 +1348,8 @@ mod tests {
 	}
 
 	#[test]
-	fn testxx3() {
-		use std::io::Write; // bring trait into scope
+	fn default_config_as_json_works() {
+		use std::io::Write;
 		use std::fs;		
 
 		sp_tracing::try_init_simple();
@@ -1357,15 +1357,10 @@ mod tests {
 		//default_config_as_json 
 		let mut r = executor_call(&mut t, "GenesisBuilder_default_config_as_json", &vec![]).0.unwrap();
 		let r = Vec::<u8>::decode(&mut &r[..]).unwrap();
-		println!("r:{r:?}");
-		let mut file = fs::OpenOptions::new()
-			.create(true) // To create a new file
-			.write(true)
-			.open("/tmp/xx1").unwrap();
+		let json = String::from_utf8(r.into()).expect("returned value is json. qed.");
 
-		file.write_all(&r);
-		let j = String::from_utf8(r.into()).expect("xx");
-		println!("{j}");
+		let expected = r#"{"system":{"code":"0x"},"babe":{"authorities":[],"epochConfig":null},"substrateTest":{"authorities":[]},"balances":{"balances":[]}}"#;
+		assert_eq!(expected.to_string(),json);
 	}
 
 	use crate::genesismap::GenesisStorageBuilder;
@@ -1384,7 +1379,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_parse_json_and_create_storage_works() {
+	fn build_genesis_config_from_json_works() {
 		sp_tracing::try_init_simple();
 		let j = std::fs::read("/tmp/default_genesis_config.json").unwrap();
 
