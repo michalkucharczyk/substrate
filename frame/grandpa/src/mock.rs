@@ -26,7 +26,7 @@ use frame_election_provider_support::{onchain, SequentialPhragmen};
 use frame_support::{
 	parameter_types,
 	traits::{
-		ConstU128, ConstU32, ConstU64, GenesisBuildExt, KeyOwnerProofSystem, OnFinalize,
+		ConstU128, ConstU32, ConstU64, GenesisBuild, KeyOwnerProofSystem, OnFinalize,
 		OnInitialize,
 	},
 };

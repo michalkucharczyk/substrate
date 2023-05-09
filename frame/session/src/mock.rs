@@ -34,7 +34,7 @@ use sp_staking::SessionIndex;
 
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64, GenesisBuildExt},
+	traits::{ConstU32, ConstU64, GenesisBuild},
 	BasicExternalities,
 };
 

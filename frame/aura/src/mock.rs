@@ -22,7 +22,7 @@
 use crate as pallet_aura;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64, DisabledValidators, GenesisBuildExt},
+	traits::{ConstU32, ConstU64, DisabledValidators, GenesisBuild},
 };
 use sp_consensus_aura::{ed25519::AuthorityId, AuthorityIndex};
 use sp_core::H256;

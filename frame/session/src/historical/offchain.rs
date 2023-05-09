@@ -152,7 +152,7 @@ mod tests {
 	use sp_runtime::testing::UintAuthorityId;
 
 	use frame_support::{
-		traits::{GenesisBuildExt, KeyOwnerProofSystem, OnInitialize},
+		traits::{GenesisBuild, KeyOwnerProofSystem, OnInitialize},
 		BasicExternalities,
 	};
 

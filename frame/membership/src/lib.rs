@@ -535,7 +535,7 @@ mod tests {
 
 	use frame_support::{
 		assert_noop, assert_ok, bounded_vec, ord_parameter_types, parameter_types,
-		traits::{ConstU32, ConstU64, GenesisBuildExt, StorageVersion},
+		traits::{ConstU32, ConstU64, GenesisBuild, StorageVersion},
 	};
 	use frame_system::EnsureSignedBy;
 

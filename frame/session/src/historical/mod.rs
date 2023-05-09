@@ -380,7 +380,7 @@ pub(crate) mod tests {
 	use sp_runtime::{key_types::DUMMY, testing::UintAuthorityId};
 
 	use frame_support::{
-		traits::{GenesisBuildExt, KeyOwnerProofSystem, OnInitialize},
+		traits::{GenesisBuild, KeyOwnerProofSystem, OnInitialize},
 		BasicExternalities,
 	};
 

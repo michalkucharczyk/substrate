@@ -27,7 +27,7 @@ use frame_support::{
 	dispatch::{DispatchError, DispatchErrorWithPostInfo, Dispatchable, Pays},
 	error::BadOrigin,
 	parameter_types, storage,
-	traits::{ConstU32, ConstU64, Contains, GenesisBuildExt},
+	traits::{ConstU32, ConstU64, Contains, GenesisBuild},
 	weights::Weight,
 };
 use pallet_collective::{EnsureProportionAtLeast, Instance1};

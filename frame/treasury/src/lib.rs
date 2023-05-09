@@ -252,7 +252,7 @@ pub mod pallet {
 			&self,
 			storage: &mut sp_runtime::Storage,
 		) -> Result<(), String> {
-			<Self as GenesisBuildExt<T, I>>::assimilate_storage(self, storage)
+			<Self as GenesisBuild<T, I>>::assimilate_storage(self, storage)
 		}
 	}
 

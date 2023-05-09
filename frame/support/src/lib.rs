@@ -1520,8 +1520,6 @@ pub mod tests {
 
 /// Prelude to be used alongside pallet macro, for ease of use.
 pub mod pallet_prelude {
-	#[cfg(feature = "std")]
-	pub use crate::traits::GenesisBuildExt;
 	pub use crate::{
 		dispatch::{
 			DispatchClass, DispatchError, DispatchResult, DispatchResultWithPostInfo, Parameter,

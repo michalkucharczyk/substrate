@@ -29,7 +29,7 @@ use sp_storage::Storage;
 
 use frame_support::{
 	assert_noop, assert_ok,
-	pallet_prelude::GenesisBuildExt,
+	pallet_prelude::GenesisBuild,
 	parameter_types,
 	storage::StoragePrefixedMap,
 	traits::{ConstU32, ConstU64, SortedMembers, StorageVersion},
@@ -578,7 +578,7 @@ fn genesis_funding_works() {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	GenesisBuildExt::<Test>::assimilate_storage(&pallet_treasury::GenesisConfig, &mut t).unwrap();
+	GenesisBuild::<Test>::assimilate_storage(&pallet_treasury::GenesisConfig, &mut t).unwrap();
 	let mut t: sp_io::TestExternalities = t.into();
 
 	t.execute_with(|| {

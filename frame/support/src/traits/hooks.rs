@@ -362,11 +362,9 @@ pub trait GenesisBuild<T, I = ()>: Default + sp_runtime::traits::MaybeSerializeD
 	/// The build function is called within an externalities allowing storage APIs.
 	/// Thus one can write to storage using regular pallet storages.
 	fn build(&self);
-}
 
-#[cfg(feature = "std")]
-pub trait GenesisBuildExt<T, I = ()>: GenesisBuild<T, I> {
 	/// Build the storage using `build` inside default storage.
+	#[cfg(feature = "std")]
 	fn build_storage(&self) -> Result<sp_runtime::Storage, String> {
 		let mut storage = Default::default();
 		self.assimilate_storage(&mut storage)?;
@@ -374,6 +372,7 @@ pub trait GenesisBuildExt<T, I = ()>: GenesisBuild<T, I> {
 	}
 
 	/// Assimilate the storage for this module into pre-existing overlays.
+	#[cfg(feature = "std")]
 	fn assimilate_storage(&self, storage: &mut sp_runtime::Storage) -> Result<(), String> {
 		sp_state_machine::BasicExternalities::execute_with_storage(storage, || {
 			self.build();
@@ -382,8 +381,8 @@ pub trait GenesisBuildExt<T, I = ()>: GenesisBuild<T, I> {
 	}
 }
 
-#[cfg(feature = "std")]
-impl<G, T, I> GenesisBuildExt<T, I> for G where G: GenesisBuild<T, I> {}
+// #[cfg(feature = "std")]
+// impl<G, T, I> GenesisBuild<T, I> for G where G: GenesisBuild<T, I> {}
 
 /// A trait which is called when the timestamp is set in the runtime.
 #[cfg_attr(all(not(feature = "tuples-96"), not(feature = "tuples-128")), impl_for_tuples(64))]

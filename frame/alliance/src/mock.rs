@@ -28,7 +28,7 @@ use sp_std::convert::{TryFrom, TryInto};
 
 pub use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
-	traits::{EitherOfDiverse, GenesisBuildExt, SortedMembers},
+	traits::{EitherOfDiverse, GenesisBuild, SortedMembers},
 	BoundedVec,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -274,7 +274,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.assimilate_storage(&mut t)
 	.unwrap();
 
-	GenesisBuildExt::<Test>::assimilate_storage(
+	GenesisBuild::<Test>::assimilate_storage(
 		&pallet_alliance::GenesisConfig {
 			fellows: vec![],
 			allies: vec![],
