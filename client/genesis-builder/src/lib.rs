@@ -17,14 +17,30 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Substrate genesis config builder
+//!
+//! This Runtime API allows to construct `GenesisConfig`, in particular:
+//! - serialize the runtime default `GenesisConfig` struct into json format,
+//! - put the GenesisConfig struct into the storage. Internally this operation calls `GenesisBuild::build` function
+//! for all runtime pallets, which is typically by pallet's author.
+//! - deserialize the GenesisConfig from given json blob and put GenesisConfig into the state storage. Allows to build
+//! customized configuration.
+//!
+//! Providing externalities with empty storage and putting GenesisConfig into storage allows to catch and build the raw
+//! storage of `GenesisConfig` which is the foundation for genesis block. 
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(missing_docs)]
 
 sp_api::decl_runtime_apis! {
+	/// API to interact with GenesisConfig for the runtime
 	pub trait GenesisBuilder {
-		fn write_default_config() -> bool;
+		/// Instantiate default `GenesisConfig` and put it to storage. Typically this will be done by means of `GenesisBuild::build` function.
+		fn build_default_config();
+
+		// fn default_config_as_json() -> serde_json::Result<Vec<u8>>;
+		/// Instantiate default `GenesisConfig` and serializes it to json blob.
 		fn default_config_as_json() -> sp_std::vec::Vec<u8>;
-		fn build_genesis_config_from_json(json: sp_std::vec::Vec<u8>) -> bool;
+
+		/// Deserialize the `GenesisConfig` from given json blob and put it into the storage.
+		fn build_genesis_config_from_json(json: sp_std::vec::Vec<u8>);
 	}
 }
